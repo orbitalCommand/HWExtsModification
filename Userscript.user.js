@@ -1,5 +1,5 @@
 // ==UserScript==
-// @name         New Userscript
+// @name         My Userscript
 // @namespace    http://tampermonkey.net/
 // @version      2025-03-03
 // @description  try to take over the world!
@@ -9,6 +9,8 @@
 // @grant        none
 // @resource json         https://support.oneskyapp.com/hc/en-us/article_attachments/202761727
 // @require      https://github.com/lindell/JsBarcode/releases/download/v3.11.6/JsBarcode.all.min.js
+// @downloadURL https://github.com/yukkon/HWExts/raw/refs/heads/main/Userscript.user.js
+// @updateURL https://github.com/yukkon/HWExts/raw/refs/heads/main/Userscript.user.js
 // ==/UserScript==
 
 (function () {
