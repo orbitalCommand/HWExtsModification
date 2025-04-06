@@ -50,10 +50,17 @@
   const { buttons } = HWHData;
 
   buttons["autokech"] = {
-    name: "Автокач",
-    title: "title для новой кропки",
+    name: "Аўтакач",
+    title:
+      "Можа выкарыстоўваць зменную `autofarm_heroes_${userId}`) з localStorage. Напрыклад яна можа прымаць значэнні <br/>{7:[16,17], 60:[16]} - Качаем Тэі чывоны і чырвоны +1 і Мушы і Шруму чырвоны каляры" +
+      "<br/>[7, 60, 53] - Качаем Тею, Мушы і Шрума і Альванора да наступнага ўзроўню" +
+      "Калі зменнай няма качам наймацнейшага героя да наступнага узроўню",
     color: "green",
-    onClick: () => {
+    onClick: async () => {
+      if (!name1()) {
+        setProgress("Ваш VIP не дазваляе праводзіць рэйды");
+        return;
+      }
       let h = localStorage.getItem(`autofarm_heroes_${userId}`);
       if (!!h) {
         let hhh = JSON.parse(h);
@@ -64,46 +71,19 @@
     },
   };
 
-  async function name1(params) {
-    userInfo = await Send({
+  async function name1() {
+    const userInfo = await Send({
       calls: [{ name: "userGetInfo", args: {}, ident: "body" }],
     }).then((r) => r.results[0].result.response);
-    vipLevel = Math.max(
+    const vipLevel = Math.max(
       ...lib.data.level.vip
         .filter((l) => l.vipPoints <= +userInfo.vipPoints)
         .map((l) => l.level)
     );
 
-    if (vipLevel >= 1) {
-      buttons["autokech"] = {
-        name: "Автокач",
-        title: "title для новой кропки",
-        color: "green",
-        onClick: () => {
-          let h = localStorage.getItem(`autofarm_heroes_${userId}`);
-          if (!!h) {
-            setProgress("Герои заданы", true);
-            let hhh = JSON.parse(h);
-            console.log(hhh);
-            hh(hhh);
-          } else {
-            name().then((h) => {
-              console.log(h);
-              setProgress(
-                `Используем первого доступного героя: ${cheats.translate(
-                  `LIB_HERO_NAME_${h[0].id}`
-                )}`,
-                true
-              );
-              hh([h[0].id]);
-            });
-          }
-        },
-      };
-    }
+    return vipLevel >= 1;
   }
 
-  // не оконченные герои
   async function hnc(params) {
     const Heroes = await Send({
       calls: [{ name: "heroGetAll", args: {}, ident: "body" }],
@@ -111,9 +91,9 @@
 
     return Object.values(Heroes)
       .map((h) => {
-        const slots = lib.data.hero[h.id].color[h.color].items.map(
-          (val, ind) => h.slots[ind] ?? val
-        );
+        const slots = lib.data.hero[h.id].color[h.color].items
+          .map((val, ind) => h.slots[ind] ?? val)
+          .filter(Number);
         return {
           id: h.id,
           name: cheats.translate(`LIB_HERO_NAME_${h.id}`),
@@ -136,14 +116,12 @@
 
     if (!heroes) {
       let her = hs[0];
-      lo = her.slots
-        .filter((i) => i > 0)
-        .reduce((acc, i) => {
-          acc[i] = 1 + ~~acc[i];
-          return acc;
-        }, {});
+      lo = her.slots.reduce((acc, i) => {
+        acc[i] = 1 + ~~acc[i];
+        return acc;
+      }, {});
       setProgress(
-        `Используем ${cheats.translate(`LIB_HERO_NAME_${her.id}`)}`,
+        `Качаем: ${cheats.translate(`LIB_HERO_NAME_${her.id}`)}`,
         true
       );
     } else {
@@ -168,18 +146,21 @@
           .join("<br />");
         setProgress(`Качаем:<br/>${co}`);
         lo = Object.keys(heroes).reduce((acc, id) => {
-          let h_items = heroes[id].reduce((acc1, color) => {
-            let items = lib.data.hero[id].color[color].items;
-            let her = hs.find((e) => e.id == id);
-            if (her.color == color) {
-              items = her.slots;
-            }
-            items.forEach((item) => {
-              acc1[item] = 1 + ~~acc1[item];
-            });
+          let her = hs.find((e) => e.id == id);
+          let h_items = heroes[id]
+            .filter((l) => l >= her.color)
+            .reduce((acc1, color) => {
+              let items = lib.data.hero[id].color[color].items;
 
-            return acc1;
-          }, {});
+              if (her.color == color) {
+                items = her.slots;
+              }
+              items.forEach((item) => {
+                acc1[item] = 1 + ~~acc1[item];
+              });
+
+              return acc1;
+            }, {});
           Object.entries(h_items).forEach(([k, v]) => {
             acc[k] = v + ~~acc[k];
           });
@@ -192,7 +173,7 @@
     let needs = Object.keys(lo).map(
       (k) => `${cheats.translate(`LIB_GEAR_NAME_${k}`)} - ${lo[k]}`
     );
-    console.log("Нужно", needs);
+    console.log("Патрэбна", needs);
 
     start(lo);
   }
@@ -317,10 +298,10 @@
 
       const res = f0({ gear: resources });
 
-      console.log("требуемый ресурс", res); //  {"fragmentGear": "167", count: 32} => {key: "fragmentGear", value: "167", count: 32}
+      console.log("патрэбна", res); //  {"fragmentGear": "167", count: 32} => {key: "fragmentGear", value: "167", count: 32}
       if (res) {
         console.log(
-          `Необходимо: ${res.count} ${
+          `Патрэбна: ${res.count} ${
             res.key.indexOf("fragmant") ? "фрагмент" : ""
           } ${cheats.translate(
             `LIB_${res.key.replace("fragment", "").toUpperCase()}_NAME_${
@@ -332,7 +313,7 @@
           .map((id) => lib.data.mission[id])
           .filter((m) => !m.isHeroic)
           .map((x) => ({ id: x.id, cost: x.normalMode.teamExp }));
-        console.log("Возможные миссии", missions);
+        console.log("Можна атрымаць у миссіях", missions);
         const mission = missions.find(
           (x) => x.id == Math.max(...missions.map((y) => y.id))
         );
@@ -340,7 +321,6 @@
 
         return { ...res, missions };
       } else {
-        setProgress(`Все есть`);
         return undefined;
       }
     },
@@ -348,6 +328,10 @@
 
   async function start(heroes) {
     let res = await AutoMissions.start(heroes);
+    if (!res) {
+      setProgress(`Усе есць`);
+      return;
+    }
     let stamina = AutoMissions.userInfo.refillable.find(
       (x) => x.id == 1
     ).amount;
@@ -357,7 +341,6 @@
         .map((l) => l.level)
     );
     const ress = [];
-
     while (res) {
       const mission = res.missions.find(
         (x) => x.id == Math.max(...res.missions.map((y) => y.id))
@@ -414,29 +397,33 @@
         o.used += mission.cost * times;
 
         setProgress(
-          `Получено: ${o.count} / ${res.count} ${
+          `Атрымалі: ${o.count} / ${res.count} ${
             o.name
-          } <br> израсходовано энки ${o.used} (${(o.used / o.count).toFixed(
+          } <br> выкарыставана энки ${o.used} (${(o.used / o.count).toFixed(
             2
           )})`
         );
       }
       ress.push(o);
       if (stamina < times * mission.cost) {
-        setProgress(`Не хватает энки`);
+        setProgress(`Не хапае энки`);
         break;
       }
       res = await AutoMissions.start(heroes);
       stamina = AutoMissions.userInfo.refillable.find((x) => x.id == 1).amount;
     }
-    let con = ress
-      .map(
-        (o) =>
-          `${o.count} ${o.name} израсходовано энки ${o.used} (${(
-            o.used / o.count
-          ).toFixed(2)})`
-      )
-      .join("<br>");
-    setProgress(`Получено:<br>${con}`);
+    if (ress.length > 0) {
+      let con = ress
+        .map(
+          (o) =>
+            `${o.count} ${o.name} выкарыстана энки ${o.used} (${(
+              o.used / o.count
+            ).toFixed(2)})`
+        )
+        .join("<br>");
+      setProgress(`Атрымалі:<br>${con}`);
+    } else {
+      setProgress("Нічога не атрымалі. (Не дастаткова энкі ці ўсе есць)");
+    }
   }
 })();
