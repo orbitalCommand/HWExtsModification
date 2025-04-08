@@ -19,6 +19,22 @@
 // @run-at			document-start
 // ==/UserScript==
 
+/*
+.PopUp_text {
+  font-size: 22px;
+  font-family: sans-serif;
+  font-weight: 600;
+  font-stretch: condensed;
+  letter-spacing: 1px;
+  text-align: center;
+}
+  .PopUp_text.PopUp_msgText detail div {
+    padding-left: 20px;
+  }
+  .PopUp_text.PopUp_msgText detail div:last-child {
+    border: 1px
+  } 
+*/
 (function () {
   if (!this.HWHClasses) {
     console.log("%cObject for extension not found", "color: red");
@@ -69,12 +85,15 @@
           let arr = lib.data.specialQuestEvent.chain[x5].specialQuests.map(
             (x6) => lib.data.quest.special[x6]
           );
-
+          let name = cheats.translate(
+            `LIB_QUEST_TRANSLATE_${arr[0].translationMethod.toUpperCase()}`
+          );
+          if (name == "LIB_QUEST_TRANSLATE_POINTEVENTXPADD") {
+            name = "Получи очков события";
+          }
           if (arr.length > 0) {
             return {
-              name: cheats.translate(
-                `LIB_QUEST_TRANSLATE_${arr[0].translationMethod.toUpperCase()}`
-              ),
+              name,
               b: arr.map((x) => x.farmCondition),
             };
           }
@@ -135,11 +154,41 @@
     }
   }
 
+  async function hnc(params) {
+    const Heroes = await Send({
+      calls: [{ name: "heroGetAll", args: {}, ident: "body" }],
+    }).then((r) => r.results[0].result.response);
+
+    return Object.values(Heroes)
+      .map((h) => {
+        const slots = lib.data.hero[h.id].color[h.color].items
+          .map((val, ind) => h.slots[ind] ?? val)
+          .filter(Number);
+        return {
+          id: h.id,
+          name: cheats.translate(`LIB_HERO_NAME_${h.id}`),
+          color: h.color,
+          slots: slots,
+          power: h.power,
+        };
+      })
+      .filter((h) => h.slots.reduce((a, s) => a + s, 0) > 0)
+      .sort((a, b) => b.power - a.power);
+  }
+
   async function ff() {
-    const answer = await popup.confirm("Выбери действие", null, [
-      { name: "1", label: "Чек 1", checked: true },
-      { name: "2", label: "Чек 2", checked: false },
-    ]);
+    const heroes = await hnc();
+    let sel = heroes.slice(0, 20).map((hero) => ({
+      name: hero.id,
+      label: cheats.translate(`LIB_HERO_NAME_${hero.id}`),
+      checked: false,
+      colors: Array.from(
+        { length: 18 - hero.color + 1 },
+        (_, i) => i + hero.color
+      ).map((c) => lib.data.enum.heroColor[c].ident),
+    }));
+
+    const answer = await popup.confirm("Выбери героев", null, sel);
     setProgress(answer);
     const taskList = popup.getCheckBoxes();
     let cc = [];

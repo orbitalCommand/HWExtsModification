@@ -8,13 +8,14 @@
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=hero-wars.com
 // @grant        none
 // @resource json         https://support.oneskyapp.com/hc/en-us/article_attachments/202761727
-// @require      https://github.com/lindell/JsBarcode/releases/download/v3.11.6/JsBarcode.all.min.js
 // @downloadURL https://github.com/yukkon/HWExts/raw/refs/heads/main/Userscript.user.js
 // @updateURL https://github.com/yukkon/HWExts/raw/refs/heads/main/Userscript.user.js
 // ==/UserScript==
 
 (function () {
   //fetch("https://support.oneskyapp.com/hc/en-us/article_attachments/202761727").then(o => o.json()).then(t => console.info(t))
+  //document.querySelector('#flash-content').offsetWidth
+  //document.querySelector("#flash-content").offsetHeight;
 
   if (!this.HWHClasses) {
     console.log("%cObject for extension not found", "color: red");
@@ -52,9 +53,11 @@
   buttons["autokech"] = {
     name: "Аўтакач",
     title:
-      "Можа выкарыстоўваць зменную `autofarm_heroes_${userId}`) з localStorage. Напрыклад яна можа прымаць значэнні <br/>{7:[16,17], 60:[16]} - Качаем Тэі чывоны і чырвоны +1 і Мушы і Шруму чырвоны каляры" +
-      "<br/>[7, 60, 53] - Качаем Тею, Мушы і Шрума і Альванора да наступнага ўзроўню" +
-      "Калі зменнай няма качам наймацнейшага героя да наступнага узроўню",
+      "Можа выкарыстоўваць зменную `autofarm_heroes_${userId}`) з localStorage.\nНапрыклад яна можа прымаць значэнні \n{7:[16,17], 60:[16]} - Качаем Тэі чывоны і чырвоны +1 і Мушы і Шруму чырвоны каляры" +
+      "\n[7, 60, 53] - Качаем Тею, Мушы і Шрума і Альванора да наступнага ўзроўню" +
+      "\nКалі зменнай няма качам наймацнейшага героя да наступнага узроўню" +
+      "\n localStorage.setItem(`autofarm_heroes_${userId}`, JSON.stringify({7:[15,16,17]}));" +
+      "\n localStorage.getItem(`autofarm_heroes_${userId}`);",
     color: "green",
     onClick: async () => {
       if (!name1()) {
@@ -121,7 +124,7 @@
         return acc;
       }, {});
       setProgress(
-        `Качаем: ${cheats.translate(`LIB_HERO_NAME_${her.id}`)}`,
+        `Качаем: '${cheats.translate(`LIB_HERO_NAME_${her.id}`)}'`,
         true
       );
     } else {
@@ -131,7 +134,7 @@
           her.slots.forEach((s) => (acc[s] = 1 + ~~acc[s]));
           return acc;
         }, {});
-        let co = Object.keys(heroes)
+        let co = heroes
           .map((id) => `\t${cheats.translate(`LIB_HERO_NAME_${id}`)}`)
           .join("<br />");
         setProgress(`Качаем:<br/>${co}`);
@@ -171,7 +174,7 @@
     }
 
     let needs = Object.keys(lo).map(
-      (k) => `${cheats.translate(`LIB_GEAR_NAME_${k}`)} - ${lo[k]}`
+      (k) => `'${cheats.translate(`LIB_GEAR_NAME_${k}`)}' - ${lo[k]}`
     );
     console.log("Патрэбна", needs);
 
@@ -221,12 +224,24 @@
                     };
                   } else {
                     res = {
-                      key: [item],
+                      key: item,
                       value: id,
                       count: obj[item][id] * count - h,
                     };
                   }
                   if (res.count == 0) res = undefined;
+                }
+                const missions = searchMissions(res)
+                  .map((id) => lib.data.mission[id])
+                  .filter((m) => !m.isHeroic)
+                  .map((x) => ({
+                    id: x.id,
+                    cost: x.normalMode.teamExp,
+                  }));
+                if (missions.length == 0) {
+                  res = undefined;
+                } else {
+                  res.missions = missions;
                 }
               }
             }
@@ -309,17 +324,10 @@
             }`
           )} `
         );
-        const missions = searchMissions(res)
-          .map((id) => lib.data.mission[id])
-          .filter((m) => !m.isHeroic)
-          .map((x) => ({ id: x.id, cost: x.normalMode.teamExp }));
-        console.log("Можна атрымаць у миссіях", missions);
-        const mission = missions.find(
-          (x) => x.id == Math.max(...missions.map((y) => y.id))
-        );
-        localStorage.setItem("autofarm", JSON.stringify({ ...res, missions }));
+        console.log("Можна атрымаць у миссіях", res.missions);
+        localStorage.setItem("autofarm", JSON.stringify(res));
 
-        return { ...res, missions };
+        return res;
       } else {
         return undefined;
       }
@@ -329,7 +337,7 @@
   async function start(heroes) {
     let res = await AutoMissions.start(heroes);
     if (!res) {
-      setProgress(`Усе есць`);
+      setProgress(`Усе есць ці нельга здабыць`);
       return;
     }
     let stamina = AutoMissions.userInfo.refillable.find(
@@ -397,9 +405,9 @@
         o.used += mission.cost * times;
 
         setProgress(
-          `Атрымалі: ${o.count} / ${res.count} ${
+          `Атрымалі: ${o.count} / ${res.count} '${
             o.name
-          } <br> выкарыставана энки ${o.used} (${(o.used / o.count).toFixed(
+          }' <br> выкарыставана энки ${o.used} (${(o.used / o.count).toFixed(
             2
           )})`
         );
@@ -416,7 +424,7 @@
       let con = ress
         .map(
           (o) =>
-            `${o.count} ${o.name} выкарыстана энки ${o.used} (${(
+            `${o.count} '${o.name}' выкарыстана энки ${o.used} (${(
               o.used / o.count
             ).toFixed(2)})`
         )
