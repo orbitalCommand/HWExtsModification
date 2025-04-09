@@ -182,31 +182,36 @@
     }));
 
     let answer = await popup.confirm("Выбери героев", null, sel);
-    console.log(answer);
+    if (answer) {
+      const taskList = popup.getCheckBoxes();
+      let cc = taskList
+        .filter((checkBox) => checkBox.checked)
+        .map((checkBox) => checkBox.name);
 
-    const taskList = popup.getCheckBoxes();
-    let cc = taskList
-      .filter((checkBox) => checkBox.checked)
-      .map((checkBox) => checkBox.name);
+      sel = cc.map((id) => {
+        let hero = heroes.find((h) => h.id == id);
+        return Array.from(
+          { length: 18 - hero.color + 1 },
+          (_, i) => i + hero.color
+        ).map((c) => ({
+          color: cheats.translate(lib.data.enum.heroColor[c].locale_key),
+          name: `${hero.id}|${c}`,
+          checked: false,
+          label: `${hero.name} - ${cheats.translate(
+            lib.data.enum.heroColor[c].locale_key
+          )} ${lib.data.enum.heroColor[c].ident.match(/\+/g)?.length || ""}`,
+        }));
+      });
 
-    sel = cc.map((id) => {
-      let hero = heroes.find((h) => h.id == id);
-      return Array.from(
-        { length: 18 - hero.color + 1 },
-        (_, i) => i + hero.color
-      ).map((c) => ({
-        color: cheats.translate(lib.data.enum.heroColor[c].locale_key),
-        name: `${hero.id}|${c}`,
-        checked: false,
-        label: `${hero.name} - ${cheats.translate(
-          lib.data.enum.heroColor[c].locale_key
-        )}`,
-        count: lib.data.enum.heroColor[c].ident.match(/\+/g)?.length,
-      }));
-    });
-
-    answer = await popup.confirm("Выбери ранги", null, sel.flat());
-    console.log(answer);
+      answer = await popup.confirm("Выбери ранги", null, sel.flat());
+      if (answer) {
+        const taskList = popup.getCheckBoxes();
+        let cc = taskList
+          .filter((checkBox) => checkBox.checked)
+          .map((checkBox) => checkBox.name);
+        console.log(cc);
+      }
+    }
   }
 
   /*

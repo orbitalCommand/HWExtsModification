@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         My Userscript
 // @namespace    http://tampermonkey.net/
-// @version      2020-04-09
+// @version      2025-04-09
 // @description  try to take over the world!
 // @author       You
 // @match        https://www.hero-wars.com/*
