@@ -7,11 +7,8 @@
 // @description		Extension for HeroWarsHelper script
 // @description:en	Extension for HeroWarsHelper script
 // @description:ru	Расширение для скрипта HeroWarsHelper
-// @author			ZingerY
-// @license 		Copyright ZingerY
-// @homepage		https://zingery.ru/scripts/HWHExampleExt.user.js
-// @downloadURL		https://zingery.ru/scripts/HWHExampleExt.user.js
-// @updateURL		https://zingery.ru/scripts/HWHExampleExt.user.js
+// @downloadURL https://github.com/yukkon/HWExts/raw/refs/heads/main/HWHExampleExt1-1.0.user.js
+// @updateURL https://github.com/yukkon/HWExts/raw/refs/heads/main/HWHExampleExt1-1.0.user.js
 // @icon			https://zingery.ru/scripts/VaultBoyIco16.ico
 // @icon64			https://zingery.ru/scripts/VaultBoyIco64.png
 // @match			https://www.hero-wars.com/*
@@ -182,22 +179,34 @@
       name: hero.id,
       label: cheats.translate(`LIB_HERO_NAME_${hero.id}`),
       checked: false,
-      colors: Array.from(
-        { length: 18 - hero.color + 1 },
-        (_, i) => i + hero.color
-      ).map((c) => lib.data.enum.heroColor[c].ident),
     }));
 
-    const answer = await popup.confirm("Выбери героев", null, sel);
-    setProgress(answer);
+    let answer = await popup.confirm("Выбери героев", null, sel);
+    console.log(answer);
+
     const taskList = popup.getCheckBoxes();
-    let cc = [];
-    for (const checkBox of taskList) {
-      if (checkBox.checked) {
-        cc.push(checkBox.name);
-      }
-    }
-    setProgress(cc.join("<br />"));
+    let cc = taskList
+      .filter((checkBox) => checkBox.checked)
+      .map((checkBox) => checkBox.name);
+
+    sel = cc.map((id) => {
+      let hero = heroes.find((h) => h.id == id);
+      return Array.from(
+        { length: 18 - hero.color + 1 },
+        (_, i) => i + hero.color
+      ).map((c) => ({
+        color: cheats.translate(lib.data.enum.heroColor[c].locale_key),
+        name: `${hero.id}|${c}`,
+        checked: false,
+        label: `${hero.name} - ${cheats.translate(
+          lib.data.enum.heroColor[c].locale_key
+        )}`,
+        count: lib.data.enum.heroColor[c].ident.match(/\+/g)?.length,
+      }));
+    });
+
+    answer = await popup.confirm("Выбери ранги", null, sel.flat());
+    console.log(answer);
   }
 
   /*

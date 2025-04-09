@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         My Userscript
 // @namespace    http://tampermonkey.net/
-// @version      2025-03-03
+// @version      2020-04-09
 // @description  try to take over the world!
 // @author       You
 // @match        https://www.hero-wars.com/*
@@ -140,12 +140,20 @@
         setProgress(`Качаем:<br/>${co}`);
       } else {
         let co = Object.keys(heroes)
-          .map(
-            (id) =>
-              `\t${cheats.translate(`LIB_HERO_NAME_${id}`)} - [${heroes[id]
-                .map((c) => lib.data.enum.heroColor[c].ident)
-                .join("|")}]`
-          )
+          .map((id) => {
+            hero = {
+              id,
+              name: cheats.translate(`LIB_HERO_NAME_${id}`),
+              colors: heroes[id].map((c) => ({
+                name: cheats.translate(lib.data.enum.heroColor[c].locale_key),
+                count: lib.data.enum.heroColor[c].ident.match(/\+/g)?.length,
+              })),
+            };
+
+            return `\t${hero.name}(${hero.id}) - [${hero.colors
+              .map((c) => c.name + c.count)
+              .join("|")}]`;
+          })
           .join("<br />");
         setProgress(`Качаем:<br/>${co}`);
         lo = Object.keys(heroes).reduce((acc, id) => {
@@ -174,9 +182,11 @@
     }
 
     let needs = Object.keys(lo).map(
-      (k) => `'${cheats.translate(`LIB_GEAR_NAME_${k}`)}' - ${lo[k]}`
+      (k) => `${cheats.translate(`LIB_GEAR_NAME_${k}`)}(${k}) - ${lo[k]}`
     );
     console.log("Патрэбна", needs);
+
+    //lib.data.inventoryItem.gear[209]?.craftRecipe?.gear
 
     start(lo);
   }
@@ -243,6 +253,8 @@
                 } else {
                   res.missions = missions;
                 }
+              } else {
+                this.inventory[item][id] -= obj[item][id] * count;
               }
             }
           }
