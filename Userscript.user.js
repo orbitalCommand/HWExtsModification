@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         My Userscript
 // @namespace    http://tampermonkey.net/
-// @version      1.0.7
+// @version      1.0.11
 // @description  try to take over the world!
 // @author       You
 // @match        https://www.hero-wars.com/*
@@ -31,33 +31,13 @@
     GM_info.script.author
   );
 
-  const {
-    getInput,
-    setProgress,
-    hideProgress,
-    I18N,
-    send,
-    getTimer,
-    countdownTimer,
-    getUserInfo,
-    getSaveVal,
-    setSaveVal,
-    popup,
-    setIsCancalBattle,
-    random,
-    confShow,
-  } = HWHFuncs;
+  const { setProgress, popup } = HWHFuncs;
 
   const { buttons } = HWHData;
 
   buttons["autokech"] = {
-    name: "Аўтакач",
-    title:
-      "Можа выкарыстоўваць зменную `autofarm_heroes_${userId}`) з localStorage.\nНапрыклад яна можа прымаць значэнні \n{7:[16,17], 60:[16]} - Качаем Тэі чывоны і чырвоны +1 і Мушы і Шруму чырвоны каляры" +
-      "\n[7, 60, 53] - Качаем Тею, Мушы і Шрума і Альванора да наступнага ўзроўню" +
-      "\nКалі зменнай няма качам наймацнейшага героя да наступнага узроўню" +
-      "\n localStorage.setItem(`autofarm_heroes_${userId}`, JSON.stringify({7:[15,16,17]}));" +
-      "\n localStorage.getItem(`autofarm_heroes_${userId}`);",
+    name: "Аўтафарм",
+    title: "Аутаматычны фарм ресурсаў партрэбных героям",
     color: "green",
     onClick: async () => {
       if (!name1()) {
@@ -65,15 +45,6 @@
         return;
       }
       ff();
-      /*
-      let h = localStorage.getItem(`autofarm_heroes_${userId}`);
-      if (!!h) {
-        let hhh = JSON.parse(h);
-        hh(hhh);
-      } else {
-        hh();
-      }
-      */
     },
   };
   async function hnc(params) {
@@ -99,56 +70,78 @@
   }
 
   async function ff() {
-    const h = localStorage.getItem(`autofarm_heroes_${userId}`) || {};
-    const hhh = JSON.parse(h);
+    const h = localStorage.getItem(`autofarm_heroes_${userId}`);
+    const hhh = JSON.parse(h) || {};
     const heroes = await hnc();
-    let sel = heroes.slice(0, 10).map((hero) => ({
-      name: hero.id,
-      label: cheats.translate(`LIB_HERO_NAME_${hero.id}`),
-      checked: Object.keys(hhh).includes(hero.id.toString()),
-    }));
+    let sel = heroes.slice(0, 10).map((hero) => {
+      let selected = false;
+      if (Array.isArray(hhh)) {
+        selected = hhh.includes(hero.id);
+      } else if (hhh[hero.id]) {
+        selected = hhh[hero.id].includes(hero.color);
+      }
+      return {
+        name: hero.id,
+        label: cheats.translate(`LIB_HERO_NAME_${hero.id}`),
+        checked: selected,
+      };
+    });
 
     let answer = await popup.confirm("Выбери героев", null, sel);
     if (answer) {
       const taskList = popup.getCheckBoxes();
-      let cc = taskList
+      let selectedHeroes = taskList
         .filter((checkBox) => checkBox.checked)
-        .map((checkBox) => checkBox.name);
+        .map((checkBox) => Number(checkBox.name));
+      let selected = undefined;
+      if (selectedHeroes.length > 0) {
+        localStorage.setItem(
+          `autofarm_heroes_${userId}`,
+          JSON.stringify(selectedHeroes)
+        );
+        selected = selectedHeroes;
 
-      sel = cc.map((id) => {
-        let hero = heroes.find((h) => h.id == id);
-        return Array.from(
-          { length: 18 - hero.color + 1 },
-          (_, i) => i + hero.color
-        ).map((c) => ({
-          color: cheats.translate(lib.data.enum.heroColor[c].locale_key),
-          name: `${hero.id}|${c}`,
-          checked: hhh[hero.id]?.includes(c) || false,
-          label: `${hero.name} - ${cheats.translate(
-            lib.data.enum.heroColor[c].locale_key
-          )} ${lib.data.enum.heroColor[c].ident.match(/\+/g)?.length || ""}`,
-        }));
-      });
+        sel = selectedHeroes.map((id) => {
+          let hero = heroes.find((h) => h.id == id);
+          return Array.from(
+            { length: 18 - hero.color + 1 },
+            (_, i) => i + hero.color
+          ).map((c) => ({
+            color: cheats.translate(lib.data.enum.heroColor[c].locale_key),
+            name: `${hero.id}|${c}`,
+            checked: hhh[hero.id]?.includes(c) || false,
+            label: `${hero.name} - ${cheats.translate(
+              lib.data.enum.heroColor[c].locale_key
+            )} ${lib.data.enum.heroColor[c].ident.match(/\+/g)?.length || ""}`,
+          }));
+        });
 
-      answer = await popup.confirm("Выбери ранги", null, sel.flat());
-      if (answer) {
-        const taskList = popup.getCheckBoxes();
-        let cc = taskList
-          .filter((checkBox) => checkBox.checked)
-          .reduce((acc, checkBox) => {
-            let [hero, color] = checkBox.name.split("|");
-            if (!acc[hero]) {
-              acc[hero] = [];
-            }
-            if (!acc[hero].includes(color)) {
-              acc[hero].push(Number(color));
-            }
+        answer = await popup.confirm("Выбери ранги", null, sel.flat());
+        if (answer) {
+          const taskList = popup.getCheckBoxes();
+          let selectedRangs = taskList
+            .filter((checkBox) => checkBox.checked)
+            .reduce((acc, checkBox) => {
+              let [hero, color] = checkBox.name.split("|");
+              if (!acc[hero]) {
+                acc[hero] = [];
+              }
+              if (!acc[hero].includes(color)) {
+                acc[hero].push(Number(color));
+              }
 
-            return acc;
-          }, {});
-        localStorage.setItem(`autofarm_heroes_${userId}`, JSON.stringify(cc));
-        hh(cc);
+              return acc;
+            }, {});
+          if (Object.keys(selectedRangs).length > 0) {
+            localStorage.setItem(
+              `autofarm_heroes_${userId}`,
+              JSON.stringify(selectedRangs)
+            );
+            selected = selectedRangs;
+          }
+        }
       }
+      hh(selected);
     }
   }
 
@@ -195,7 +188,7 @@
     let lo = [];
     let hs = await hnc();
 
-    if (!heroes) {
+    if (!heroes || (Array.isArray(heroes) && heroes.length == 0)) {
       let her = hs[0];
       lo = her.slots.reduce((acc, i) => {
         acc[i] = 1 + ~~acc[i];
@@ -502,7 +495,10 @@
           )})`
         );
       }
-      ress.push(o);
+      if (o.count > 0) {
+        ress.push(o);
+      }
+
       if (stamina < times * mission.cost) {
         setProgress(`Не хапае энки`);
         break;
