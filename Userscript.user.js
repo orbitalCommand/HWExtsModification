@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         My Userscript
 // @namespace    http://tampermonkey.net/
-// @version      2025-04-09
+// @version      1.0.7
 // @description  try to take over the world!
 // @author       You
 // @match        https://www.hero-wars.com/*
@@ -22,7 +22,7 @@
     return;
   }
 
-  console.log("%cStart my Extension ", "color: red");
+  console.log("%cStart my Extension " + GM_info.script.version, "color: red");
 
   const { addExtentionName } = HWHFuncs;
   addExtentionName(
@@ -64,6 +64,8 @@
         setProgress("Ваш VIP не дазваляе праводзіць рэйды");
         return;
       }
+      ff();
+      /*
       let h = localStorage.getItem(`autofarm_heroes_${userId}`);
       if (!!h) {
         let hhh = JSON.parse(h);
@@ -71,8 +73,84 @@
       } else {
         hh();
       }
+      */
     },
   };
+  async function hnc(params) {
+    const Heroes = await Send({
+      calls: [{ name: "heroGetAll", args: {}, ident: "body" }],
+    }).then((r) => r.results[0].result.response);
+
+    return Object.values(Heroes)
+      .map((h) => {
+        const slots = lib.data.hero[h.id].color[h.color].items
+          .map((val, ind) => h.slots[ind] ?? val)
+          .filter(Number);
+        return {
+          id: h.id,
+          name: cheats.translate(`LIB_HERO_NAME_${h.id}`),
+          color: h.color,
+          slots: slots,
+          power: h.power,
+        };
+      })
+      .filter((h) => h.slots.reduce((a, s) => a + s, 0) > 0)
+      .sort((a, b) => b.power - a.power);
+  }
+
+  async function ff() {
+    const h = localStorage.getItem(`autofarm_heroes_${userId}`) || {};
+    const hhh = JSON.parse(h);
+    const heroes = await hnc();
+    let sel = heroes.slice(0, 10).map((hero) => ({
+      name: hero.id,
+      label: cheats.translate(`LIB_HERO_NAME_${hero.id}`),
+      checked: Object.keys(hhh).includes(hero.id.toString()),
+    }));
+
+    let answer = await popup.confirm("Выбери героев", null, sel);
+    if (answer) {
+      const taskList = popup.getCheckBoxes();
+      let cc = taskList
+        .filter((checkBox) => checkBox.checked)
+        .map((checkBox) => checkBox.name);
+
+      sel = cc.map((id) => {
+        let hero = heroes.find((h) => h.id == id);
+        return Array.from(
+          { length: 18 - hero.color + 1 },
+          (_, i) => i + hero.color
+        ).map((c) => ({
+          color: cheats.translate(lib.data.enum.heroColor[c].locale_key),
+          name: `${hero.id}|${c}`,
+          checked: hhh[hero.id]?.includes(c) || false,
+          label: `${hero.name} - ${cheats.translate(
+            lib.data.enum.heroColor[c].locale_key
+          )} ${lib.data.enum.heroColor[c].ident.match(/\+/g)?.length || ""}`,
+        }));
+      });
+
+      answer = await popup.confirm("Выбери ранги", null, sel.flat());
+      if (answer) {
+        const taskList = popup.getCheckBoxes();
+        let cc = taskList
+          .filter((checkBox) => checkBox.checked)
+          .reduce((acc, checkBox) => {
+            let [hero, color] = checkBox.name.split("|");
+            if (!acc[hero]) {
+              acc[hero] = [];
+            }
+            if (!acc[hero].includes(color)) {
+              acc[hero].push(Number(color));
+            }
+
+            return acc;
+          }, {});
+        localStorage.setItem(`autofarm_heroes_${userId}`, JSON.stringify(cc));
+        hh(cc);
+      }
+    }
+  }
 
   async function name1() {
     const userInfo = await Send({
