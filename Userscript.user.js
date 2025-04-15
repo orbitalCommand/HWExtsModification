@@ -1,22 +1,17 @@
 // ==UserScript==
 // @name         My Userscript
 // @namespace    http://tampermonkey.net/
-// @version      1.0.11
+// @version      1.0.15
 // @description  try to take over the world!
-// @author       You
+// @author       yukkon
 // @match        https://www.hero-wars.com/*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=hero-wars.com
 // @grant        none
-// @resource json         https://support.oneskyapp.com/hc/en-us/article_attachments/202761727
 // @downloadURL https://github.com/yukkon/HWExts/raw/refs/heads/main/Userscript.user.js
 // @updateURL https://github.com/yukkon/HWExts/raw/refs/heads/main/Userscript.user.js
 // ==/UserScript==
 
 (function () {
-  //fetch("https://support.oneskyapp.com/hc/en-us/article_attachments/202761727").then(o => o.json()).then(t => console.info(t))
-  //document.querySelector('#flash-content').offsetWidth
-  //document.querySelector("#flash-content").offsetHeight;
-
   if (!this.HWHClasses) {
     console.log("%cObject for extension not found", "color: red");
     return;
@@ -40,14 +35,18 @@
     title: "Аутаматычны фарм ресурсаў партрэбных героям",
     color: "green",
     onClick: async () => {
-      if (!name1()) {
-        setProgress("Ваш VIP не дазваляе праводзіць рэйды");
+      const is_raid = await check_raid();
+      if (!is_raid) {
+        setProgress(
+          "Вы не валодаеце залатым квітком і ваш VIP не дазваляе праводзіць рэйды"
+        );
         return;
       }
       ff();
     },
   };
-  async function hnc(params) {
+
+  async function hnc() {
     const Heroes = await Send({
       calls: [{ name: "heroGetAll", args: {}, ident: "body" }],
     }).then((r) => r.results[0].result.response);
@@ -87,7 +86,14 @@
       };
     });
 
-    let answer = await popup.confirm("Выбери героев", null, sel);
+    let answer = await popup.confirm(
+      "Выбери героев",
+      [
+        { result: false, isClose: true },
+        { msg: "Ok", result: true, isInput: false },
+      ],
+      sel
+    );
     if (answer) {
       const taskList = popup.getCheckBoxes();
       let selectedHeroes = taskList
@@ -116,7 +122,14 @@
           }));
         });
 
-        answer = await popup.confirm("Выбери ранги", null, sel.flat());
+        answer = await popup.confirm(
+          "Выбери ранги",
+          [
+            { result: false, isClose: true },
+            { msg: "Ok", result: true, isInput: false },
+          ],
+          sel.flat()
+        );
         if (answer) {
           const taskList = popup.getCheckBoxes();
           let selectedRangs = taskList
@@ -145,45 +158,22 @@
     }
   }
 
-  async function name1() {
-    const userInfo = await Send({
-      calls: [{ name: "userGetInfo", args: {}, ident: "body" }],
-    }).then((r) => r.results[0].result.response);
+  async function check_raid() {
+    const [userInfo, userInventory] = await Send({
+      calls: [
+        { name: "userGetInfo", args: {}, ident: "group_0_body" },
+        { name: "inventoryGet", args: {}, ident: "group_1_body" },
+      ],
+    }).then((r) => r.results);
     const vipLevel = Math.max(
       ...lib.data.level.vip
-        .filter((l) => l.vipPoints <= +userInfo.vipPoints)
+        .filter((l) => l.vipPoints <= +userInfo.result.response.vipPoints)
         .map((l) => l.level)
     );
 
-    return vipLevel >= 1;
+    return vipLevel >= 1 || !!userInventory.result.response.consumable[151];
   }
 
-  async function hnc(params) {
-    const Heroes = await Send({
-      calls: [{ name: "heroGetAll", args: {}, ident: "body" }],
-    }).then((r) => r.results[0].result.response);
-
-    return Object.values(Heroes)
-      .map((h) => {
-        const slots = lib.data.hero[h.id].color[h.color].items
-          .map((val, ind) => h.slots[ind] ?? val)
-          .filter(Number);
-        return {
-          id: h.id,
-          name: cheats.translate(`LIB_HERO_NAME_${h.id}`),
-          color: h.color,
-          slots: slots,
-          power: h.power,
-        };
-      })
-      .filter((h) => h.slots.reduce((a, s) => a + s, 0) > 0)
-      .sort((a, b) => b.power - a.power);
-  }
-
-  // herors = {7:[16,17], 60:[], 53:[]} <id героя>: [цвет<, ...>]
-  // heroes = [7, 60, 53]
-  // heroes = undefined, качаем с максимальной силой
-  // в последних 2 случаях ишет ресурсы до повышения
   async function hh(heroes) {
     let lo = [];
     let hs = await hnc();

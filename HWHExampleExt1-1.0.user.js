@@ -3,10 +3,11 @@
 // @name:en			HWHExampleExt1
 // @name:ru			HWHExampleExt1
 // @namespace		HWHExampleExt1
-// @version			1.0
+// @version			1.0.1
 // @description		Extension for HeroWarsHelper script
 // @description:en	Extension for HeroWarsHelper script
 // @description:ru	Расширение для скрипта HeroWarsHelper
+// @resource json         https://support.oneskyapp.com/hc/en-us/article_attachments/202761727
 // @downloadURL https://github.com/yukkon/HWExts/raw/refs/heads/main/HWHExampleExt1-1.0.user.js
 // @updateURL https://github.com/yukkon/HWExts/raw/refs/heads/main/HWHExampleExt1-1.0.user.js
 // @icon			https://zingery.ru/scripts/VaultBoyIco16.ico
@@ -30,7 +31,19 @@
   }
   .PopUp_text.PopUp_msgText detail div:last-child {
     border: 1px
-  } 
+  }
+  //fetch("https://support.oneskyapp.com/hc/en-us/article_attachments/202761727").then(o => o.json()).then(t => console.info(t))
+
+function outputsize(entries) {
+  entries.forEach((e) => {
+    const pos = e.target.getBoundingClientRect();
+
+    console.log(pos);
+  });
+}
+outputsize();
+
+new ResizeObserver(outputsize).observe(div)
 */
 (function () {
   if (!this.HWHClasses) {
@@ -100,12 +113,49 @@
       .sort((a, b) => new Date(a.startDate) - new Date(b.startDate));
   }
 
+  async function getTop() {
+    let a = await Send({
+      calls: [
+        {
+          name: "topGet",
+          args: { type: "arena", extraId: 0 },
+          ident: "group_1_body",
+        },
+      ],
+    }).then((r) =>
+      r.results[0].result.response.top.map((place) =>
+        place.heroes.map((hero) => hero.id)
+      )
+    );
+    let a2 = a
+      .flat()
+      .reduce((acc, val) => (acc[val] ? ++acc[val] : (acc[val] = 1), acc), {});
+
+    //топ героев
+    /*
+    Object.entries(a2)
+      .filter(([id, _]) => id < 100)
+      .sort(([a_id, a_count], [b_id, b_count]) => b_count - a_count)
+      .forEach(([id, count]) =>
+        console.log(`${cheats.translate(`LIB_HERO_NAME_${id}`)} - ${count}`)
+      );
+
+    //топ петов
+    Object.entries(a2)
+      .filter(([id, _]) => id > 100 && id < 7000)
+      .sort(([a_id, a_count], [b_id, b_count]) => b_count - a_count)
+      .forEach(([id, count]) =>
+        console.log(`${cheats.translate(`LIB_HERO_NAME_${id}`)} - ${count}`)
+      );
+    */
+    return a2;
+  }
+
   async function onClickNewButton() {
     const popupButtons = [
       {
-        msg: "Кнопка 1",
+        msg: "Ивенты",
         result: () => {
-          //confShow("Нажата кнопка 1");
           let arr = getEvents();
 
           let res = document.createElement("div");
@@ -132,16 +182,48 @@
               s.append(nn);
             });
           });
-          popup.confirm(res.innerHTML, [{ result: false, isClose: true }]);
+          popup.confirm(res.outerHTML, [{ result: false, isClose: true }]);
         },
-        title: "Кнопка 1",
+        title: "Ивенты",
       },
       {
-        msg: "Кнопка 2",
-        result: () => {
-          ff();
+        msg: "Топ героев",
+        result: async () => {
+          let arr = await getTop();
+
+          let res = document.createElement("div");
+          res.id = "__result";
+
+          Object.entries(arr)
+            .filter(([id, _]) => id < 100)
+            .sort(([a_id, a_count], [b_id, b_count]) => b_count - a_count)
+            .forEach(([id, count]) => {
+              let r = document.createElement("div");
+              r.className = "row";
+              r.textContent = `${cheats.translate(
+                `LIB_HERO_NAME_${id}`
+              )} - ${count}`;
+
+              res.appendChild(r);
+            });
+
+          popup.confirm(res.outerHTML, [{ result: false, isClose: true }]);
         },
-        title: "Кнопка 2",
+        title: "Топ героев",
+      },
+      {
+        msg: "импорт тест",
+        result: async () => {
+          const { get, set, update, createStore } = await import(
+            "https://cdn.jsdelivr.net/npm/idb-keyval@6/+esm"
+          );
+
+          const getSkins = await import(
+            "https://github.com/yukkon/HWExts/raw/refs/heads/main/exports/HeroSkins.js"
+          );
+          let l = 1;
+        },
+        title: "тест импорта скрипта",
       },
     ];
     popupButtons.push({ result: false, isClose: true });
@@ -151,75 +233,13 @@
     }
   }
 
-  async function hnc(params) {
-    const Heroes = await Send({
-      calls: [{ name: "heroGetAll", args: {}, ident: "body" }],
-    }).then((r) => r.results[0].result.response);
-
-    return Object.values(Heroes)
-      .map((h) => {
-        const slots = lib.data.hero[h.id].color[h.color].items
-          .map((val, ind) => h.slots[ind] ?? val)
-          .filter(Number);
-        return {
-          id: h.id,
-          name: cheats.translate(`LIB_HERO_NAME_${h.id}`),
-          color: h.color,
-          slots: slots,
-          power: h.power,
-        };
-      })
-      .filter((h) => h.slots.reduce((a, s) => a + s, 0) > 0)
-      .sort((a, b) => b.power - a.power);
-  }
-
-  async function ff() {
-    const heroes = await hnc();
-    let sel = heroes.slice(0, 20).map((hero) => ({
-      name: hero.id,
-      label: cheats.translate(`LIB_HERO_NAME_${hero.id}`),
-      checked: false,
-    }));
-
-    let answer = await popup.confirm("Выбери героев", null, sel);
-    if (answer) {
-      const taskList = popup.getCheckBoxes();
-      let cc = taskList
-        .filter((checkBox) => checkBox.checked)
-        .map((checkBox) => checkBox.name);
-
-      sel = cc.map((id) => {
-        let hero = heroes.find((h) => h.id == id);
-        return Array.from(
-          { length: 18 - hero.color + 1 },
-          (_, i) => i + hero.color
-        ).map((c) => ({
-          color: cheats.translate(lib.data.enum.heroColor[c].locale_key),
-          name: `${hero.id}|${c}`,
-          checked: false,
-          label: `${hero.name} - ${cheats.translate(
-            lib.data.enum.heroColor[c].locale_key
-          )} ${lib.data.enum.heroColor[c].ident.match(/\+/g)?.length || ""}`,
-        }));
-      });
-
-      answer = await popup.confirm("Выбери ранги", null, sel.flat());
-      if (answer) {
-        const taskList = popup.getCheckBoxes();
-        let cc = taskList
-          .filter((checkBox) => checkBox.checked)
-          .map((checkBox) => checkBox.name);
-        console.log(cc);
-      }
-    }
-  }
-
   /*
 const answer = await popup.confirm('RUN_FUNCTION', [
         { msg: I18N('BTN_CANCEL'), result: false, isCancel: true },
         { msg: I18N('BTN_GO'), result: true },
       ], () => {});
       */
+
   const xBb = {
     __class__: "game.data.storage.quest.QuestDescriptionTaskTranslation",
     TRANSLATE: function (a) {
