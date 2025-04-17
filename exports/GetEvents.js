@@ -1,4 +1,4 @@
-export default function getEvents() {
+export function getEvents() {
   var d = new Date();
   d.setDate(d.getDate() - 3);
   return Object.values(lib.data.specialQuestEvent.type)
