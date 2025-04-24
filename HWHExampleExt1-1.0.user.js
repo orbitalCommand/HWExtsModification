@@ -57,6 +57,7 @@ new ResizeObserver(outputsize).observe(div)
     console.log("%cObject for extension not found", "color: red");
     return;
   }
+  let modules;
 
   console.log(
     "%cStart Extension " +
@@ -85,6 +86,31 @@ new ResizeObserver(outputsize).observe(div)
 
   const { popup, confShow, setProgress } = HWHFuncs;
 
+  async function loadModules() {
+    const { getEvents } = await import(
+      "https://cdn.jsdelivr.net/gh/yukkon/HWExts/exports/GetEvents.js"
+    );
+    const { getTop } = await import(
+      "https://cdn.jsdelivr.net/gh/yukkon/HWExts/exports/GetTop.js"
+    );
+    const { get, set, update, createStore } = await import(
+      "https://cdn.jsdelivr.net/npm/idb-keyval@6/+esm"
+    );
+    const { getSkins } = await import(
+      "https://cdn.jsdelivr.net/gh/yukkon/HWExts/exports/HeroSkins.js"
+    );
+    const { getHeroes } = await import(
+      "https://cdn.jsdelivr.net/gh/yukkon/HWExts/exports/GetHeroes.js"
+    );
+    return {
+      getEvents,
+      getTop,
+      idb: { get, set, update, createStore },
+      getSkins,
+      getHeroes,
+    };
+  }
+
   async function onClickNewButton() {
     const popupButtons = [
       {
@@ -93,28 +119,12 @@ new ResizeObserver(outputsize).observe(div)
           const { getEvents } = await import(
             "https://cdn.jsdelivr.net/gh/yukkon/HWExts/exports/GetEvents.js"
           );
-          let arr = getEvents();
+          let arr = await getEvents();
 
           let res = document.createElement("div");
           res.id = "__result";
 
-          document.styleSheets[document.styleSheets.length - 1].insertRule(
-            "#__result { text-align: initial; font-size: 16px; }",
-            document.styleSheets[document.styleSheets.length - 1].cssRules
-              .length
-          );
-
-          document.styleSheets[document.styleSheets.length - 1].insertRule(
-            ".PopUp_ { left: unset; top: unset; position: fixed;	left: 50%; top: 50%; transform: translate(-50%, -50%); max-width: unset; max-height: unset; }",
-            document.styleSheets[document.styleSheets.length - 1].cssRules
-              .length
-          );
-
-          document.styleSheets[document.styleSheets.length - 1].insertRule(
-            "details > p, details > div { padding-left: 2em; }",
-            document.styleSheets[document.styleSheets.length - 1].cssRules
-              .length
-          );
+          applyCSSRules();
 
           arr.forEach((x) => {
             let ev = document.createElement("details");
@@ -151,6 +161,7 @@ new ResizeObserver(outputsize).observe(div)
 
           let res = document.createElement("div");
           res.id = "__result";
+          applyCSSRules();
 
           Object.entries(arr)
             .filter(([id, _]) => id < 100)
@@ -168,6 +179,100 @@ new ResizeObserver(outputsize).observe(div)
           popup.confirm(res.outerHTML, [{ result: false, isClose: true }]);
         },
         title: "Топ героев",
+      },
+      {
+        msg: "тест кача",
+        result: async () => {
+          const h = localStorage.getItem(`autofarm_heroes_${userId}`);
+          const hhh = JSON.parse(h) || {};
+
+          const arr = await modules.getHeroes();
+
+          let res = document.createElement("div");
+          res.id = "__result";
+
+          applyCSSRules();
+
+          arr.slice(0, 10).forEach((h) => {
+            let detail = document.createElement("div");
+            detail.className = "detail";
+            res.appendChild(detail);
+
+            let summary = document.createElement("div");
+            summary.className = "PopUp_ContCheckbox summary";
+            detail.appendChild(summary);
+
+            let input = document.createElement("input");
+            input.type = "checkbox";
+            input.className = "PopUp_checkbox";
+            input.value = h.id;
+            input.id = `hero_${h.id}`;
+            if (hhh.hasOwnProperty(h.id)) {
+              input.setAttribute("checked", true);
+            }
+            summary.appendChild(input);
+
+            let label = document.createElement("label");
+            label.textContent = h.name;
+            label.htmlFor = `hero_${h.id}`;
+            summary.appendChild(label);
+
+            let answers = document.createElement("div");
+            answers.className = "answers";
+            summary.appendChild(answers);
+
+            h.colors.forEach((c) => {
+              let summary = document.createElement("div");
+              summary.className = "PopUp_ContCheckbox rank";
+
+              let input2 = document.createElement("input");
+              input2.type = "checkbox";
+              input2.className = "PopUp_checkbox";
+              input2.value = `${h.id}|${c.id}`;
+              input2.id = `hero_${h.id}_${c.id}`;
+              if (hhh[h.id]?.includes(c.id)) {
+                input2.setAttribute("checked", true);
+              }
+              summary.appendChild(input2);
+
+              let label = document.createElement("label");
+              label.textContent = c.name;
+              label.htmlFor = `hero_${h.id}_${c.id}`;
+              summary.appendChild(label);
+
+              answers.appendChild(summary);
+            });
+          });
+
+          let answer = await popup.confirm(res.outerHTML, [
+            { result: false, isClose: true },
+            { msg: "Ok", result: true, isInput: false },
+          ]);
+
+          if (answer) {
+            const taskList = [
+              ...popup.msgText.querySelectorAll(
+                "#__result div.detail input.PopUp_checkbox:checked"
+              ),
+            ].reduce((acc, checkBox) => {
+              let [hero, color] = checkBox.value.split("|");
+              if (!acc[hero] && !color) {
+                acc[hero] = [];
+              }
+              if (acc[hero] && color) {
+                acc[hero].push(Number(color));
+              }
+              return acc;
+            }, {});
+
+            console.log(taskList);
+            localStorage.setItem(
+              `autofarm_heroes_${userId}`,
+              JSON.stringify(taskList)
+            );
+          }
+        },
+        title: "тест выбора героя",
       },
       {
         msg: "импорт тест",
@@ -190,11 +295,13 @@ new ResizeObserver(outputsize).observe(div)
             "https://cdn.jsdelivr.net/gh/yukkon/HWExts/exports/HeroSkins.js"
           );
 
+          const skins = await getSkins();
           let l = 1;
         },
         title: "тест импорта скрипта",
       },
     ];
+    modules = await loadModules();
     popupButtons.push({ result: false, isClose: true });
     const answer = await popup.confirm("Выбери действие", popupButtons);
     if (typeof answer === "function") {
@@ -202,6 +309,32 @@ new ResizeObserver(outputsize).observe(div)
     }
   }
 
+  function applyCSSRules() {
+    document.styleSheets[document.styleSheets.length - 1].insertRule(
+      "#__result { text-align: initial; font-size: 16px; }",
+      document.styleSheets[document.styleSheets.length - 1].cssRules.length
+    );
+
+    document.styleSheets[document.styleSheets.length - 1].insertRule(
+      "details > p, details > div { padding-left: 2em; }",
+      document.styleSheets[document.styleSheets.length - 1].cssRules.length
+    );
+
+    document.styleSheets[document.styleSheets.length - 1].insertRule(
+      ".answers { padding-left: 2em; }",
+      document.styleSheets[document.styleSheets.length - 1].cssRules.length
+    );
+
+    document.styleSheets[document.styleSheets.length - 1].insertRule(
+      "input[type='checkbox'] ~ div.answers {display: none; }",
+      document.styleSheets[document.styleSheets.length - 1].cssRules.length
+    );
+
+    document.styleSheets[document.styleSheets.length - 1].insertRule(
+      "input[type='checkbox']:checked ~ div.answers { display: block; }",
+      document.styleSheets[document.styleSheets.length - 1].cssRules.length
+    );
+  }
   /*
 const answer = await popup.confirm('RUN_FUNCTION', [
         { msg: I18N('BTN_CANCEL'), result: false, isCancel: true },
