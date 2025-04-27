@@ -5,28 +5,30 @@ export async function getHeroes() {
 
   return Object.values(Heroes)
     .map((h) => {
-      const slots = lib.data.hero[h.id].color[h.color].items
-        .map((val, ind) => h.slots[ind] ?? val)
-        .filter(Number);
       const colors = Array.from(
         { length: 18 - h.color + 1 },
         (_, i) => i + h.color
-      ).map((c) => ({
-        id: c,
-        value: `${h.id}|${c}`,
-        name: `${cheats.translate(lib.data.enum.heroColor[c].locale_key)} ${
-          lib.data.enum.heroColor[c].ident.match(/\+/g)?.length || ""
-        }`,
-      }));
+      ).map((c) => {
+        const slots = lib.data.hero[h.id].color[c].items
+          .map((val, ind) => (h.color == c ? h.slots[ind] ?? val : val))
+          .filter(Number);
+        return {
+          id: c,
+          slots: slots,
+          value: `${h.id}|${c}`,
+          name: `${cheats.translate(lib.data.enum.heroColor[c].locale_key)} ${
+            lib.data.enum.heroColor[c].ident.match(/\+/g)?.length || ""
+          }`,
+        };
+      });
 
       return {
         id: h.id,
         name: cheats.translate(`LIB_HERO_NAME_${h.id}`),
         colors,
-        slots,
         power: h.power,
       };
     })
-    .filter((h) => h.slots.reduce((a, s) => a + s, 0) > 0)
+    .filter((h) => h.colors.reduce((a, c) => a + c.slots.reduce((a1, s) => a1 + s, 0), 0) > 0)
     .sort((a, b) => b.power - a.power);
 }
