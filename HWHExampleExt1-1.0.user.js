@@ -3,7 +3,7 @@
 // @name:en			HWHExampleExt1
 // @name:ru			HWHExampleExt1
 // @namespace		HWHExampleExt1
-// @version			1.0.3
+// @version			1.0.18
 // @description		Extension for HeroWarsHelper script
 // @description:en	Extension for HeroWarsHelper script
 // @description:ru	Расширение для скрипта HeroWarsHelper
@@ -51,6 +51,12 @@ function outputsize(entries) {
 outputsize();
 
 new ResizeObserver(outputsize).observe(div)
+
+k["game.view.gui.components.inventory.ClipInventoryItemImage"] = Pe;
+game.view.gui.components.HeroPortraitWithTweenableShade"
+game.view.gui.components.ObjectSubscriptionWrapEntry"
+game.mechanics.hero.view.HeroPreviewWithBackground
+game.data.storage.DataStorage
 */
 (function () {
   if (!this.HWHClasses) {
@@ -186,7 +192,11 @@ new ResizeObserver(outputsize).observe(div)
           const h = localStorage.getItem(`autofarm_heroes_${userId}`);
           const hhh = JSON.parse(h) || {};
 
-          const arr = await modules.getHeroes();
+          const { getHeroes } = await import(
+            "https://cdn.jsdelivr.net/gh/yukkon/HWExts/exports/GetHeroes.js"
+          );
+
+          const arr = await getHeroes();
 
           let res = document.createElement("div");
           res.id = "__result";
@@ -250,7 +260,7 @@ new ResizeObserver(outputsize).observe(div)
           ]);
 
           if (answer) {
-            const taskList = [
+            const heroes = [
               ...popup.msgText.querySelectorAll(
                 "#__result div.detail input.PopUp_checkbox:checked"
               ),
@@ -265,14 +275,158 @@ new ResizeObserver(outputsize).observe(div)
               return acc;
             }, {});
 
-            console.log(taskList);
+            console.log("Выбраны", heroes);
             localStorage.setItem(
               `autofarm_heroes_${userId}`,
-              JSON.stringify(taskList)
+              JSON.stringify(heroes)
             );
+            const lo = Object.keys(heroes).reduce((acc, id) => {
+              let h_items = heroes[id].reduce((acc1, color) => {
+                const c = arr
+                  .find((e) => e.id == id)
+                  .colors.find((c) => c.id == color);
+                c.slots.forEach((item) => {
+                  acc1[item] = 1 + ~~acc1[item];
+                });
+
+                return acc1;
+              }, {});
+              Object.entries(h_items).forEach(([k, v]) => {
+                acc[k] = v + ~~acc[k];
+              });
+
+              return acc;
+            }, {});
+            console.log("Патрэбны прадметы", lo);
+            let res = await AutoMissions.start(lo);
+            console.log(res);
           }
         },
         title: "тест выбора героя",
+      },
+      {
+        msg: "тест ресурсов",
+        result: async () => {
+          const am = await import(
+            "https://cdn.jsdelivr.net/gh/yukkon/HWExts/exports/HeroSkins.js"
+          ).then((m) => m.default);
+
+          // ключ от всех дверей 212
+          // вороненые латы 183
+          // "LIB_GEAR_NAME_132": "Шар Прорицателя",
+          // "LIB_GEAR_NAME_137": "Шар Всевидящего",
+          let res = await AutoMissions.start({ 132: 1, 137: 1 });
+          console.log(res);
+        },
+        title: "тест ресурсов",
+      },
+      {
+        msg: "тест реварда",
+        result: async () => {
+          let response = {
+            0: { fragmentScroll: { 215: 1 }, gold: 3011 },
+            1: { consumable: { 10: 1 }, gold: 3011 },
+            2: { fragmentScroll: { 215: 1 }, gold: 3011 },
+            3: { fragmentGear: { 224: 1 }, gold: 3011 },
+            4: { gold: 3011 },
+            5: { gold: 3011 },
+            6: { gold: 3011 },
+            7: {
+              fragmentGear: { 224: 1 },
+              fragmentScroll: { 215: 1 },
+              gold: 3011,
+            },
+            8: { fragmentScroll: { 215: 1, 244: 1 }, gold: 3011 },
+            9: { gold: 3011 },
+            raid: { consumable: { 9: 4, 10: 1, 12: 2, 92: 2 } },
+          };
+          AutoMissions.needed = { fragmentScroll: { 215: 18 } };
+          // {"0":{"fragmentGear":{"224":1},"fragmentScroll": {"244": 1},"gold": 3011},"1": {"gold": 3011},"2": {"gold": 3011},"3": {"gold": 3011},"4": {"fragmentScroll": {"215": 1},"gold": 3011},"5": {"fragmentGear": {"224": 1},"gold": 3011},"6": {"fragmentScroll": {"244": 1},"gold": 3011,"consumable": {"10": 1}},"7": {"fragmentScroll": {"215": 1},"gold": 3011},"8": {"fragmentScroll": {"215": 1,"244": 1},"gold": 3011},"9": {"gold": 3011},"raid": {"consumable": {"9": 4,"10": 1,"12": 2,"92": 3}}}
+          await AutoMissions.processReward(response);
+        },
+        title: "тест ресурсов",
+      },
+      {
+        msg: "тест мерджа",
+        result: async () => {
+          let response = [
+            { fragmentScroll: { 215: 1 }, gold: 3011 },
+            { consumable: { 10: 1 }, gold: 3011 },
+            { fragmentScroll: { 215: 1 }, gold: 3011 },
+            { fragmentGear: { 224: 1 }, gold: 3011 },
+            { gold: 3011 },
+            { gold: 3011 },
+            { gold: 3011 },
+            {
+              fragmentGear: { 224: 1 },
+              fragmentScroll: { 215: 1 },
+              gold: 3011,
+            },
+            { fragmentScroll: { 215: 1, 244: 1 }, gold: 3011 },
+            { gold: 3011 },
+            { consumable: { 9: 4, 10: 1, 12: 2, 92: 2 } },
+          ];
+          // {"0":{"fragmentGear":{"224":1},"fragmentScroll": {"244": 1},"gold": 3011},"1": {"gold": 3011},"2": {"gold": 3011},"3": {"gold": 3011},"4": {"fragmentScroll": {"215": 1},"gold": 3011},"5": {"fragmentGear": {"224": 1},"gold": 3011},"6": {"fragmentScroll": {"244": 1},"gold": 3011,"consumable": {"10": 1}},"7": {"fragmentScroll": {"215": 1},"gold": 3011},"8": {"fragmentScroll": {"215": 1,"244": 1},"gold": 3011},"9": {"gold": 3011},"raid": {"consumable": {"9": 4,"10": 1,"12": 2,"92": 3}}}
+          const o = await AutoMissions.merge(response);
+          console.log("мердж", o);
+        },
+        title: "тест ресурсов",
+      },
+      {
+        msg: "тест пересечения",
+        result: async () => {
+          let response = [
+            { fragmentScroll: { 215: 1 }, gold: 3011 },
+            { consumable: { 10: 1 }, gold: 3011 },
+            { fragmentScroll: { 215: 1 }, gold: 3011 },
+            { fragmentGear: { 224: 1 }, gold: 3011 },
+            { gold: 3011 },
+            { gold: 3011 },
+            { gold: 3011 },
+            {
+              fragmentGear: { 224: 1 },
+              fragmentScroll: { 215: 1 },
+              gold: 3011,
+            },
+            { fragmentScroll: { 215: 1, 244: 1 }, gold: 3011 },
+            { gold: 3011 },
+            { consumable: { 9: 4, 10: 1, 12: 2, 92: 2 } },
+          ];
+
+          // {"0":{"fragmentGear":{"224":1},"fragmentScroll": {"244": 1},"gold": 3011},"1": {"gold": 3011},"2": {"gold": 3011},"3": {"gold": 3011},"4": {"fragmentScroll": {"215": 1},"gold": 3011},"5": {"fragmentGear": {"224": 1},"gold": 3011},"6": {"fragmentScroll": {"244": 1},"gold": 3011,"consumable": {"10": 1}},"7": {"fragmentScroll": {"215": 1},"gold": 3011},"8": {"fragmentScroll": {"215": 1,"244": 1},"gold": 3011},"9": {"gold": 3011},"raid": {"consumable": {"9": 4,"10": 1,"12": 2,"92": 3}}}
+          const o = AutoMissions.merge(response);
+          b = AutoMissions.intersect(o, { fragmentScroll: { 215: 18 } });
+          console.log("пересечение", b);
+        },
+        title: "тест ресурсов",
+      },
+      {
+        msg: "тест вычитания",
+        result: async () => {
+          let response = [
+            { fragmentScroll: { 215: 1 }, gold: 3011 },
+            { consumable: { 10: 1 }, gold: 3011 },
+            { fragmentScroll: { 215: 1 }, gold: 3011 },
+            { fragmentGear: { 224: 1 }, gold: 3011 },
+            { gold: 3011 },
+            { gold: 3011 },
+            { gold: 3011 },
+            {
+              fragmentGear: { 224: 1 },
+              fragmentScroll: { 215: 1 },
+              gold: 3011,
+            },
+            { fragmentScroll: { 215: 1, 244: 1 }, gold: 3011 },
+            { gold: 3011 },
+            { consumable: { 9: 4, 10: 1, 12: 2, 92: 2 } },
+          ];
+
+          // {"0":{"fragmentGear":{"224":1},"fragmentScroll": {"244": 1},"gold": 3011},"1": {"gold": 3011},"2": {"gold": 3011},"3": {"gold": 3011},"4": {"fragmentScroll": {"215": 1},"gold": 3011},"5": {"fragmentGear": {"224": 1},"gold": 3011},"6": {"fragmentScroll": {"244": 1},"gold": 3011,"consumable": {"10": 1}},"7": {"fragmentScroll": {"215": 1},"gold": 3011},"8": {"fragmentScroll": {"215": 1,"244": 1},"gold": 3011},"9": {"gold": 3011},"raid": {"consumable": {"9": 4,"10": 1,"12": 2,"92": 3}}}
+          const o = AutoMissions.merge(response);
+          b = AutoMissions.subtraction({ fragmentScroll: { 215: 18 } }, o);
+          console.log("вычитание", b);
+        },
+        title: "тест ресурсов",
       },
       {
         msg: "импорт тест",
@@ -301,7 +455,7 @@ new ResizeObserver(outputsize).observe(div)
         title: "тест импорта скрипта",
       },
     ];
-    modules = await loadModules();
+    //modules = await loadModules();
     popupButtons.push({ result: false, isClose: true });
     const answer = await popup.confirm("Выбери действие", popupButtons);
     if (typeof answer === "function") {
@@ -335,6 +489,306 @@ new ResizeObserver(outputsize).observe(div)
       document.styleSheets[document.styleSheets.length - 1].cssRules.length
     );
   }
+
+  const AutoMissions = {
+    inventory: undefined,
+    missions: undefined,
+    availableMissionsToRaid: undefined,
+    userInfo: undefined,
+    Reward2Mission: undefined,
+    needed: {},
+
+    //
+    async start(resources = {}) {
+      this.needed = {};
+      const f0 = (obj, count = 1) => {
+        if (count == 0) {
+          return undefined;
+        }
+        delete obj.gold;
+        let res = undefined;
+        for (let item of Object.keys(obj)) {
+          //gear scroll
+          for (let id of Object.keys(obj[item])) {
+            // 102
+            if (obj[item][id] * count != 0) {
+              const countInv = this.inventory[item][id] ?? 0;
+              if (obj[item][id] * count > countInv) {
+                const rec = lib.data.inventoryItem[item][id].craftRecipe;
+                if (rec) {
+                  f0(rec, obj[item][id] * count - countInv);
+                } else {
+                  const capitalized =
+                    item.charAt(0).toUpperCase() + item.slice(1);
+                  let h = this.inventory[`fragment${capitalized}`][id] || 0;
+                  if (lib.data.inventoryItem[item][id]?.fragmentMergeCost) {
+                    res = {
+                      key: `fragment${capitalized}`,
+                      value: id,
+                      count:
+                        obj[item][id] *
+                          count *
+                          lib.data.inventoryItem[item][id]?.fragmentMergeCost
+                            ?.fragmentCount -
+                        h,
+                    };
+                  } else {
+                    res = {
+                      key: item,
+                      value: id,
+                      count: obj[item][id] * count - h,
+                    };
+                  }
+
+                  if (res?.count > 0) {
+                    this.needed[res.key] = this.needed[res.key] || {};
+
+                    const missions = searchMissions(res)
+                      .map((id) => lib.data.mission[id])
+                      .filter((m) => !m.isHeroic)
+                      .map((x) => ({
+                        id: x.id,
+                        cost: x.normalMode.teamExp,
+                      }));
+                    this.needed[res.key][res.value] = {
+                      count: res.count,
+                      missions,
+                    };
+                  } else {
+                    this.inventory[res.key][res.value] -= res.count;
+                  }
+                }
+              } else {
+                this.inventory[item][id] -= obj[item][id] * count;
+              }
+            }
+          }
+        }
+      };
+
+      const searchMissions = (item) => {
+        let out = [];
+        if (item && this.Reward2Mission[item.key]) {
+          out = this.Reward2Mission[item.key][item.value] ?? [];
+        }
+        return out;
+      };
+
+      let resp = await Send({
+        calls: [
+          { name: "inventoryGet", args: {}, ident: "group_0_body" },
+          { name: "userGetInfo", args: {}, ident: "group_1_body" },
+          { name: "missionGetAll", args: {}, ident: "group_2_body" },
+        ],
+      });
+      this.inventory = resp.results[0].result.response;
+      this.userInfo = resp.results[1].result.response;
+      this.missions = resp.results[2].result.response;
+
+      this.availableMissionsToRaid = Object.values(this.missions)
+        .filter((mission) => mission.stars === 3)
+        .map((mission) => mission.id);
+      this.Reward2Mission = Object.values(lib.data.mission).reduce(
+        (acc, mission) => {
+          if (!this.availableMissionsToRaid.includes(mission.id)) {
+            return acc;
+          }
+
+          const enemies = mission.normalMode.waves
+            .map((wave) => wave.enemies)
+            .flat();
+          const drop = enemies
+            .filter((enemy) => !!enemy.drop?.length)
+            .map((enemy) => enemy.drop)
+            .flat();
+          const reward = drop.filter((d) => d.chance > 0).map((d) => d.reward);
+
+          reward.forEach((r) => {
+            Object.keys(r).forEach((inventoryKey) => {
+              if (!acc[inventoryKey]) {
+                acc[inventoryKey] = {};
+                Object.keys(r[inventoryKey]).forEach((inventoryItem) => {
+                  acc[inventoryKey][inventoryItem] = [mission.id];
+                });
+              } else {
+                Object.keys(r[inventoryKey]).forEach((inventoryItem) => {
+                  if (!acc[inventoryKey][inventoryItem]) {
+                    acc[inventoryKey][inventoryItem] = [mission.id];
+                  } else {
+                    acc[inventoryKey][inventoryItem].push(mission.id);
+                  }
+                });
+              }
+            });
+          });
+
+          return acc;
+        },
+        {}
+      );
+
+      f0({ gear: resources });
+
+      console.log(this.needed);
+      if (Object.keys(this.needed).length > 0) {
+        Object.entries(this.needed).forEach(([item, idvs]) => {
+          Object.entries(idvs).forEach(([id, v]) => {
+            console.log(
+              `Патрэбна: ${v.count} ${
+                item.indexOf("fragmant") ? "фрагмент" : ""
+              } ${cheats.translate(
+                `LIB_${item.replace("fragment", "").toUpperCase()}_NAME_${id}`
+              )}(${item}_${id}) `
+            );
+          });
+        });
+        const mission = this.selectMission();
+        console.log(mission);
+
+        //const response = await this.runMission(mission);
+        this.processReward({});
+        // endregion
+      } else {
+        Object.entries(resources).forEach((id, count) => {
+          const name = cheats.translate(`LIB_GEAR_NAME_${id}`);
+          console.log(`Можна стварыць: ${count} ${name}`);
+        });
+      }
+      return this.needed;
+    },
+
+    async run() {
+      let stamina = AutoMissions.userInfo.refillable.find(
+        (x) => x.id == 1
+      ).amount;
+      const vipLevel = Math.max(
+        ...lib.data.level.vip
+          .filter((l) => l.vipPoints <= +AutoMissions.userInfo.vipPoints)
+          .map((l) => l.level)
+      );
+      const reward = {};
+      const times = vipLevel >= 5 ? 10 : 1;
+
+      // mission case
+
+      while (stamina >= times * mission.cost && o.count < res.count) {
+        // region run mission
+        let response = await this.runMission(mission);
+        // endregion
+        // region rewards
+        this.processReward(response);
+        // endregion
+
+        o.count += c;
+        stamina -= mission.cost * times;
+        o.used += mission.cost * times;
+
+        setProgress(
+          `Атрымалі: ${o.count} / ${res.count} '${
+            o.name
+          }' <br> выкарыставана энки ${o.used} (${(o.used / o.count).toFixed(
+            2
+          )})`
+        );
+      }
+    },
+    selectMission() {
+      //all necessary missions
+      let ms = Object.entries(this.needed).flatMap(([item, idvs]) =>
+        Object.entries(idvs).flatMap(([id, v]) => v.missions)
+      );
+
+      let count = ms.reduce((acc, curr) => {
+        acc[curr.id] = { ...curr, count: (acc[curr.id]?.count || 0) + 1 };
+        return acc;
+      }, {});
+
+      const cc = Object.values(count).sort((a, b) => b.count - a.count);
+      console.log(cc);
+
+      return cc[0];
+    },
+    processReward(response) {
+      // region rewards
+      const o = Object.values(response).reduce((acc2, object) => {
+        Object.keys(object).forEach((key) => {
+          if (this.needed[key]) {
+            Object.entries(object[key]).forEach(([id, count]) => {
+              if (this.needed[key][id]) {
+                acc2[key] = acc2[key] || {};
+                acc2[key][id] = acc2[key][id] || 0;
+                acc2[key][id] += count;
+
+                if (this.needed[key][id]) {
+                  this.needed[key][id].count -= count;
+                }
+              }
+            });
+          }
+        });
+        return acc2;
+      }, {});
+      console.log(this.caller, o);
+      // endregion
+    },
+    runMission(mission) {
+      return Send({
+        calls: [
+          {
+            name: "missionRaid",
+            args: { id: mission.id, times },
+            ident: "body",
+          },
+        ],
+      }).then((x) => {
+        if (x.error) {
+          console.error(x.error);
+          return {};
+        }
+        return x.results[0].result.response;
+      });
+    },
+    merge(response) {
+      return response.reduce((acc2, object) => {
+        Object.keys(object).forEach((key) => {
+          Object.entries(object[key]).forEach(([id, count]) => {
+            acc2[key] = acc2[key] || {};
+            acc2[key][id] = acc2[key][id] || 0;
+            acc2[key][id] += count;
+          });
+        });
+        return acc2;
+      }, {});
+    },
+    //возвращает элеиенты 1 объекта которые есть во втором
+    intersect(source, destination) {
+      return Object.keys(source).reduce((acc, key) => {
+        if (destination[key]) {
+          acc[key] = {};
+          Object.keys(source[key]).forEach((id) => {
+            if (destination[key][id]) {
+              acc[key][id] = source[key][id];
+            }
+          });
+        }
+        return acc;
+      }, {});
+    },
+    subtraction(source, destination) {
+      return Object.keys(source).reduce((acc, key) => {
+        if (destination[key]) {
+          acc[key] = {};
+          Object.keys(source[key]).forEach((id) => {
+            if (destination[key][id]) {
+              acc[key][id] = source[key][id] - destination[key][id];
+            }
+          });
+        }
+        return acc;
+      }, {});
+    },
+  };
+
   /*
 const answer = await popup.confirm('RUN_FUNCTION', [
         { msg: I18N('BTN_CANCEL'), result: false, isCancel: true },
