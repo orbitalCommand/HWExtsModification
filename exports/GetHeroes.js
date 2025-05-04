@@ -24,11 +24,16 @@ export async function getHeroes() {
 
       return {
         id: h.id,
+        color: h.color,
         name: cheats.translate(`LIB_HERO_NAME_${h.id}`),
         colors,
         power: h.power,
       };
     })
-    .filter((h) => h.colors.reduce((a, c) => a + c.slots.reduce((a1, s) => a1 + s, 0), 0) > 0)
+    .filter(
+      (h) =>
+        h.colors.reduce((a, c) => a + c.slots.reduce((a1, s) => a1 + s, 0), 0) >
+        0
+    )
     .sort((a, b) => b.power - a.power);
 }
