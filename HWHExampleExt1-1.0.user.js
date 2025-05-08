@@ -39,6 +39,8 @@
   .PopUp_text.PopUp_msgText detail div:last-child {
     border: 1px
   }
+
+  //fetch any file
   //fetch("https://support.oneskyapp.com/hc/en-us/article_attachments/202761727").then(o => o.json()).then(t => console.info(t))
 
 function outputsize(entries) {
@@ -92,6 +94,40 @@ game.data.storage.DataStorage
 
   const { popup, confShow, setProgress } = HWHFuncs;
 
+  document.onreadystatechange = async () => {
+    if (document.readyState == "complete") {
+      console.info("load from main", document.readyState);
+      loadModules();
+      applyCSSRules();
+      addCSSFile("https://yukkon.github.io/HWExts/tabber.css");
+      addCSSFile("https://yukkon.github.io/HWExts/toast.css");
+      document.body.addEventListener("click", (e) => {
+        var r = e.target.closest(
+          ".wds-tabber:not(.wds-tabber-react-common) .wds-tabs__tab"
+        );
+        r && (e.preventDefault(), d(r));
+      });
+      // переключение табов
+      function d(e) {
+        if (e.parentNode) {
+          var r = Array.from(e.parentNode.children).indexOf(e),
+            t = e.closest(".wds-tabber");
+          t &&
+            (t
+              .querySelectorAll(":scope > .wds-tab__content")
+              .forEach((e, t) => {
+                e.classList.toggle("active", r === t);
+              }),
+            t
+              .querySelectorAll(":scope > .wds-tabs__wrapper .wds-tabs__tab")
+              .forEach((e, t) => {
+                e.classList.toggle("active", r === t);
+              }));
+        }
+      }
+    }
+  };
+
   async function loadModules() {
     const { getEvents } = await import(
       "https://cdn.jsdelivr.net/gh/yukkon/HWExts/exports/GetEvents.js"
@@ -108,29 +144,53 @@ game.data.storage.DataStorage
     const { getHeroes } = await import(
       "https://cdn.jsdelivr.net/gh/yukkon/HWExts/exports/GetHeroes.js"
     );
-    return {
+    const { createTab } = await import(
+      "https://yukkon.github.io/HWExts/exports/createTab.js"
+    );
+
+    const { toast } = await import(
+      "https://yukkon.github.io/HWExts/exports/toast.js"
+    );
+
+    window.modules = {
       getEvents,
       getTop,
       idb: { get, set, update, createStore },
       getSkins,
       getHeroes,
+      createTab,
+      toast,
     };
   }
+
+  const response = {
+    1: { fragmentScroll: { 215: 1 }, gold: 3011 },
+    2: { consumable: { 10: 1 }, gold: 3011 },
+    3: { fragmentScroll: { 215: 1 }, gold: 3011 },
+    4: { fragmentGear: { 224: 1 }, gold: 3011 },
+    5: { gold: 3011 },
+    6: { gold: 3011 },
+    7: { gold: 3011 },
+    7: {
+      fragmentGear: { 224: 1 },
+      fragmentScroll: { 215: 1 },
+      gold: 3011,
+    },
+    8: { fragmentScroll: { 215: 1, 244: 1 }, gold: 3011 },
+    9: { gold: 3011 },
+    raid: { consumable: { 9: 4, 10: 1, 12: 2, 92: 2 } },
+  };
+  // {"0":{"fragmentGear":{"224":1},"fragmentScroll": {"244": 1},"gold": 3011},"1": {"gold": 3011},"2": {"gold": 3011},"3": {"gold": 3011},"4": {"fragmentScroll": {"215": 1},"gold": 3011},"5": {"fragmentGear": {"224": 1},"gold": 3011},"6": {"fragmentScroll": {"244": 1},"gold": 3011,"consumable": {"10": 1}},"7": {"fragmentScroll": {"215": 1},"gold": 3011},"8": {"fragmentScroll": {"215": 1,"244": 1},"gold": 3011},"9": {"gold": 3011},"raid": {"consumable": {"9": 4,"10": 1,"12": 2,"92": 3}}}
 
   async function onClickNewButton() {
     const popupButtons = [
       {
-        msg: "Ивенты",
+        msg: "Падзеі",
         result: async () => {
-          const { getEvents } = await import(
-            "https://cdn.jsdelivr.net/gh/yukkon/HWExts/exports/GetEvents.js"
-          );
-          let arr = await getEvents();
+          let arr = await window.modules.getEvents();
 
           let res = document.createElement("div");
           res.id = "__result";
-
-          applyCSSRules();
 
           arr.forEach((x) => {
             let ev = document.createElement("details");
@@ -155,19 +215,15 @@ game.data.storage.DataStorage
           });
           popup.confirm(res.outerHTML, [{ result: false, isClose: true }]);
         },
-        title: "Ивенты",
+        title: "Падзеі",
       },
       {
-        msg: "Топ героев",
+        msg: "Топ героеў",
         result: async () => {
-          const { getTop } = await import(
-            "https://cdn.jsdelivr.net/gh/yukkon/HWExts/exports/GetTop.js"
-          );
-          let arr = await getTop();
+          let arr = await window.modules.getTop();
 
           let res = document.createElement("div");
           res.id = "__result";
-          applyCSSRules();
 
           Object.entries(arr)
             .filter(([id, _]) => id < 100)
@@ -184,278 +240,140 @@ game.data.storage.DataStorage
 
           popup.confirm(res.outerHTML, [{ result: false, isClose: true }]);
         },
-        title: "Топ героев",
+        title: "Топ героеў",
       },
       {
-        msg: "тест кача",
+        msg: "Скіны",
         result: async () => {
-          const h = localStorage.getItem(`autofarm_heroes_${userId}`);
-          const hhh = JSON.parse(h) || {};
-
-          const { getHeroes } = await import(
-            "https://cdn.jsdelivr.net/gh/yukkon/HWExts/exports/GetHeroes.js"
-          );
-
-          const arr = await getHeroes();
+          const skind = await window.modules.getSkins();
+          console.log(skind);
 
           let res = document.createElement("div");
           res.id = "__result";
 
-          applyCSSRules();
+          // Создаем табы
+          let tblr = document.createElement("div");
+          tblr.className = "tabber wds-tabber";
 
-          arr.slice(0, 10).forEach((h) => {
-            let detail = document.createElement("div");
-            detail.className = "detail";
-            res.appendChild(detail);
+          let tsw = document.createElement("div");
+          tsw.className = "wds-tabs__wrapper";
+          tblr.appendChild(tsw);
 
-            let summary = document.createElement("div");
-            summary.className = "PopUp_ContCheckbox summary";
-            detail.appendChild(summary);
+          let ts = document.createElement("ul");
+          ts.className = "wds-tabs";
+          tsw.appendChild(ts);
 
-            let input = document.createElement("input");
-            input.type = "checkbox";
-            input.className = "PopUp_checkbox";
-            input.value = h.id;
-            input.id = `hero_${h.id}`;
-            if (hhh.hasOwnProperty(h.id)) {
-              input.setAttribute("checked", true);
-            }
-            summary.appendChild(input);
-
-            let label = document.createElement("label");
-            label.textContent = h.name;
-            label.htmlFor = `hero_${h.id}`;
-            summary.appendChild(label);
-
-            let answers = document.createElement("div");
-            answers.className = "answers";
-            summary.appendChild(answers);
-
-            h.colors.forEach((c) => {
-              let summary = document.createElement("div");
-              summary.className = "PopUp_ContCheckbox rank";
-
-              let input2 = document.createElement("input");
-              input2.type = "checkbox";
-              input2.className = "PopUp_checkbox";
-              input2.value = `${h.id}|${c.id}`;
-              input2.id = `hero_${h.id}_${c.id}`;
-              if (hhh[h.id]?.includes(c.id)) {
-                input2.setAttribute("checked", true);
-              }
-              summary.appendChild(input2);
-
-              let label = document.createElement("label");
-              label.textContent = c.name;
-              label.htmlFor = `hero_${h.id}_${c.id}`;
-              summary.appendChild(label);
-
-              answers.appendChild(summary);
-            });
-          });
-
-          let answer = await popup.confirm(res.outerHTML, [
-            { result: false, isClose: true },
-            { msg: "Ok", result: true, isInput: false },
-          ]);
-
-          if (answer) {
-            const heroes = [
-              ...popup.msgText.querySelectorAll(
-                "#__result div.detail input.PopUp_checkbox:checked"
-              ),
-            ].reduce((acc, checkBox) => {
-              let [hero, color] = checkBox.value.split("|");
-              if (!acc[hero] && !color) {
-                acc[hero] = [];
-              }
-              if (acc[hero] && color) {
-                acc[hero].push(Number(color));
-              }
-              return acc;
-            }, {});
-
-            console.log("Выбраны", heroes);
-            localStorage.setItem(
-              `autofarm_heroes_${userId}`,
-              JSON.stringify(heroes)
+          const f = (coin, sks) => {
+            const m = window.modules.createTab(
+              coin == "undefined"
+                ? "Фулл"
+                : cheats.translate(`LIB_COIN_NAME_${coin}`)
             );
-            const lo = Object.keys(heroes).reduce((acc, id) => {
-              let h_items = heroes[id].reduce((acc1, color) => {
-                const c = arr
-                  .find((e) => e.id == id)
-                  .colors.find((c) => c.id == color);
-                c.slots.forEach((item) => {
-                  acc1[item] = 1 + ~~acc1[item];
-                });
 
-                return acc1;
-              }, {});
-              Object.entries(h_items).forEach(([k, v]) => {
-                acc[k] = v + ~~acc[k];
+            let d = document.createElement("div");
+            d.className = "table";
+
+            sks
+              .sort((a, b) => {
+                if (a.cost?.coin && b.cost?.coin) {
+                  return a.cost?.coin[coin] - b.cost?.coin[coin];
+                } else {
+                  return 0;
+                }
+              })
+              .forEach((x) => {
+                let r = document.createElement("div");
+                r.className = "row";
+
+                let c = document.createElement("div");
+                c.className = "cell col-3";
+                c.innerText = cheats.translate(`LIB_HERO_NAME_${x.id}`);
+                r.appendChild(c);
+
+                c = document.createElement("div");
+                c.className = `cell col-5`;
+                c.innerText = x.cost.coin ? x.cost.coin[coin] : "";
+                r.appendChild(c);
+
+                d.appendChild(r);
+                m.tab_content.appendChild(d);
               });
 
-              return acc;
-            }, {});
-            console.log("Патрэбны прадметы", lo);
-            let res = await AutoMissions.start(lo);
-            console.log(res);
+            return m;
+          };
+          const skins = Object.groupBy(skind, (x) => {
+            if (x.cost.coin) {
+              return Object.keys(x.cost?.coin);
+            }
+          });
+
+          Object.keys(skins).forEach((k) => {
+            const m = f(k, skins[k]);
+            ts.appendChild(m.tab);
+            tblr.appendChild(m.tab_content);
+          });
+          res.appendChild(tblr);
+
+          popup.confirm(res.outerHTML, [{ result: false, isClose: true }]);
+        },
+        title: "Скіны",
+      },
+      {
+        msg: "тэст выбару",
+        result: async () => {
+          const arr = await window.modules.getHeroes();
+
+          // endregion Выбар
+          let answer = await ff(arr);
+
+          // region Апрацойўка вынікаў выбару герояў
+          if (answer) {
+            let lo = hh(arr);
+
+            AutoMissions.start(lo);
           }
         },
         title: "тест выбора героя",
       },
       {
-        msg: "тест ресурсов",
-        result: async () => {
-          const am = await import(
-            "https://cdn.jsdelivr.net/gh/yukkon/HWExts/exports/HeroSkins.js"
-          ).then((m) => m.default);
-
-          // ключ от всех дверей 212
-          // вороненые латы 183
-          // "LIB_GEAR_NAME_132": "Шар Прорицателя",
-          // "LIB_GEAR_NAME_137": "Шар Всевидящего",
-          let res = await AutoMissions.start({ 132: 1, 137: 1 });
-          console.log(res);
-        },
-        title: "тест ресурсов",
-      },
-      {
-        msg: "тест реварда",
-        result: async () => {
-          let response = {
-            0: { fragmentScroll: { 215: 1 }, gold: 3011 },
-            1: { consumable: { 10: 1 }, gold: 3011 },
-            2: { fragmentScroll: { 215: 1 }, gold: 3011 },
-            3: { fragmentGear: { 224: 1 }, gold: 3011 },
-            4: { gold: 3011 },
-            5: { gold: 3011 },
-            6: { gold: 3011 },
-            7: {
-              fragmentGear: { 224: 1 },
-              fragmentScroll: { 215: 1 },
-              gold: 3011,
-            },
-            8: { fragmentScroll: { 215: 1, 244: 1 }, gold: 3011 },
-            9: { gold: 3011 },
-            raid: { consumable: { 9: 4, 10: 1, 12: 2, 92: 2 } },
-          };
-          AutoMissions.needed = { fragmentScroll: { 215: 18 } };
-          // {"0":{"fragmentGear":{"224":1},"fragmentScroll": {"244": 1},"gold": 3011},"1": {"gold": 3011},"2": {"gold": 3011},"3": {"gold": 3011},"4": {"fragmentScroll": {"215": 1},"gold": 3011},"5": {"fragmentGear": {"224": 1},"gold": 3011},"6": {"fragmentScroll": {"244": 1},"gold": 3011,"consumable": {"10": 1}},"7": {"fragmentScroll": {"215": 1},"gold": 3011},"8": {"fragmentScroll": {"215": 1,"244": 1},"gold": 3011},"9": {"gold": 3011},"raid": {"consumable": {"9": 4,"10": 1,"12": 2,"92": 3}}}
-          await AutoMissions.processReward(response);
-        },
-        title: "тест ресурсов",
-      },
-      {
         msg: "тест мерджа",
         result: async () => {
-          let response = [
-            { fragmentScroll: { 215: 1 }, gold: 3011 },
-            { consumable: { 10: 1 }, gold: 3011 },
-            { fragmentScroll: { 215: 1 }, gold: 3011 },
-            { fragmentGear: { 224: 1 }, gold: 3011 },
-            { gold: 3011 },
-            { gold: 3011 },
-            { gold: 3011 },
-            {
-              fragmentGear: { 224: 1 },
-              fragmentScroll: { 215: 1 },
-              gold: 3011,
-            },
-            { fragmentScroll: { 215: 1, 244: 1 }, gold: 3011 },
-            { gold: 3011 },
-            { consumable: { 9: 4, 10: 1, 12: 2, 92: 2 } },
-          ];
-          // {"0":{"fragmentGear":{"224":1},"fragmentScroll": {"244": 1},"gold": 3011},"1": {"gold": 3011},"2": {"gold": 3011},"3": {"gold": 3011},"4": {"fragmentScroll": {"215": 1},"gold": 3011},"5": {"fragmentGear": {"224": 1},"gold": 3011},"6": {"fragmentScroll": {"244": 1},"gold": 3011,"consumable": {"10": 1}},"7": {"fragmentScroll": {"215": 1},"gold": 3011},"8": {"fragmentScroll": {"215": 1,"244": 1},"gold": 3011},"9": {"gold": 3011},"raid": {"consumable": {"9": 4,"10": 1,"12": 2,"92": 3}}}
-          const o = await AutoMissions.merge(response);
+          const o = await AutoMissions.merge(Object.values(response));
           console.log("мердж", o);
         },
-        title: "тест ресурсов",
+        title: "тест мерджа",
       },
       {
-        msg: "тест пересечения",
+        msg: "intersect",
         result: async () => {
-          let response = [
-            { fragmentScroll: { 215: 1 }, gold: 3011 },
-            { consumable: { 10: 1 }, gold: 3011 },
-            { fragmentScroll: { 215: 1 }, gold: 3011 },
-            { fragmentGear: { 224: 1 }, gold: 3011 },
-            { gold: 3011 },
-            { gold: 3011 },
-            { gold: 3011 },
-            {
-              fragmentGear: { 224: 1 },
-              fragmentScroll: { 215: 1 },
-              gold: 3011,
-            },
-            { fragmentScroll: { 215: 1, 244: 1 }, gold: 3011 },
-            { gold: 3011 },
-            { consumable: { 9: 4, 10: 1, 12: 2, 92: 2 } },
-          ];
-
-          // {"0":{"fragmentGear":{"224":1},"fragmentScroll": {"244": 1},"gold": 3011},"1": {"gold": 3011},"2": {"gold": 3011},"3": {"gold": 3011},"4": {"fragmentScroll": {"215": 1},"gold": 3011},"5": {"fragmentGear": {"224": 1},"gold": 3011},"6": {"fragmentScroll": {"244": 1},"gold": 3011,"consumable": {"10": 1}},"7": {"fragmentScroll": {"215": 1},"gold": 3011},"8": {"fragmentScroll": {"215": 1,"244": 1},"gold": 3011},"9": {"gold": 3011},"raid": {"consumable": {"9": 4,"10": 1,"12": 2,"92": 3}}}
-          const o = AutoMissions.merge(response);
+          const o = AutoMissions.merge(Object.values(response));
           b = AutoMissions.intersect(o, { fragmentScroll: { 215: 18 } });
-          console.log("пересечение", b);
+          console.log("intersect", b);
         },
-        title: "тест ресурсов",
+        title: "Атрыманыя рэсурсы якія супадаюць з патрбнымі",
       },
       {
         msg: "тест вычитания",
         result: async () => {
-          let response = [
-            { fragmentScroll: { 215: 1 }, gold: 3011 },
-            { consumable: { 10: 1 }, gold: 3011 },
-            { fragmentScroll: { 215: 1 }, gold: 3011 },
-            { fragmentGear: { 224: 1 }, gold: 3011 },
-            { gold: 3011 },
-            { gold: 3011 },
-            { gold: 3011 },
-            {
-              fragmentGear: { 224: 1 },
-              fragmentScroll: { 215: 1 },
-              gold: 3011,
-            },
-            { fragmentScroll: { 215: 1, 244: 1 }, gold: 3011 },
-            { gold: 3011 },
-            { consumable: { 9: 4, 10: 1, 12: 2, 92: 2 } },
-          ];
-
-          // {"0":{"fragmentGear":{"224":1},"fragmentScroll": {"244": 1},"gold": 3011},"1": {"gold": 3011},"2": {"gold": 3011},"3": {"gold": 3011},"4": {"fragmentScroll": {"215": 1},"gold": 3011},"5": {"fragmentGear": {"224": 1},"gold": 3011},"6": {"fragmentScroll": {"244": 1},"gold": 3011,"consumable": {"10": 1}},"7": {"fragmentScroll": {"215": 1},"gold": 3011},"8": {"fragmentScroll": {"215": 1,"244": 1},"gold": 3011},"9": {"gold": 3011},"raid": {"consumable": {"9": 4,"10": 1,"12": 2,"92": 3}}}
-          const o = AutoMissions.merge(response);
+          const o = AutoMissions.merge(Object.values(response));
           b = AutoMissions.subtraction({ fragmentScroll: { 215: 18 } }, o);
           console.log("вычитание", b);
         },
-        title: "тест ресурсов",
+        title: "Аднімаем з патрэбных рэсурсаў тыя, якія атрымалі у міссіі",
       },
       {
-        msg: "импорт тест",
+        msg: "тест тостаў",
         result: async () => {
-          /* Work with indexedDB with idb-keyval module
-          import { set, createStore } from "idb-keyval";
+          const rnd = () =>
+            crypto
+              .getRandomValues(new Uint8Array(10))
+              .reduce((acc, val) => acc + val.toString(16));
 
-          const customStore = createStore(
-            "custom-db-name",
-            "custom-store-name"
-          );
-
-          set("hello", "world", customStore);
-          */
-          const { get, set, update, createStore } = await import(
-            "https://cdn.jsdelivr.net/npm/idb-keyval@6/+esm"
-          );
-          debugger;
-          const { getSkins } = await import(
-            "https://cdn.jsdelivr.net/gh/yukkon/HWExts/exports/HeroSkins.js"
-          );
-
-          const skins = await getSkins();
-          let l = 1;
+          window.modules.toast.success(rnd());
         },
-        title: "тест импорта скрипта",
+        title: "",
       },
     ];
-    //modules = await loadModules();
     popupButtons.push({ result: false, isClose: true });
     const answer = await popup.confirm("Выбери действие", popupButtons);
     if (typeof answer === "function") {
@@ -486,6 +404,10 @@ game.data.storage.DataStorage
 
     document.styleSheets[document.styleSheets.length - 1].insertRule(
       "input[type='checkbox']:checked ~ div.answers { display: block; }",
+      document.styleSheets[document.styleSheets.length - 1].cssRules.length
+    );
+    document.styleSheets[document.styleSheets.length - 1].insertRule(
+      ".summary .PopUp_checkbox:checked ~.answers div.rank:first-child .PopUp_checkbox { checked: true; }",
       document.styleSheets[document.styleSheets.length - 1].cssRules.length
     );
   }
@@ -629,12 +551,12 @@ game.data.storage.DataStorage
 
       f0({ gear: resources });
 
-      console.log(this.needed);
+      console.log("Неабходна здабыць", this.needed);
       if (Object.keys(this.needed).length > 0) {
         Object.entries(this.needed).forEach(([item, idvs]) => {
           Object.entries(idvs).forEach(([id, v]) => {
             console.log(
-              `Патрэбна: ${v.count} ${
+              ` - ${v.count} ${
                 item.indexOf("fragmant") ? "фрагмент" : ""
               } ${cheats.translate(
                 `LIB_${item.replace("fragment", "").toUpperCase()}_NAME_${id}`
@@ -643,18 +565,23 @@ game.data.storage.DataStorage
           });
         });
         const mission = this.selectMission();
-        console.log(mission);
+        console.log("Міссія:", mission);
 
-        //const response = await this.runMission(mission);
-        this.processReward({});
+        //const response = await this.runMission(mission); // ранаем міссію
+        //const res = this.merge(Object.values(response)); // працессаем вынікі міссіі
+        //const res1 = this.intersect(res, this.needed); //пакахваем што атрымалі
+
+        //this.result = this.intersect(this.result, res1); //захоўваем вынікі
+        //this.needed = this.subtraction(this.needed, res); // захоўваем што засталося
+        //калі у нідыд нешта есць шукаем наступную міссію
         // endregion
       } else {
-        Object.entries(resources).forEach((id, count) => {
+        console.log("Можна стварыць:");
+        Object.entries(resources).forEach(([id, count]) => {
           const name = cheats.translate(`LIB_GEAR_NAME_${id}`);
-          console.log(`Можна стварыць: ${count} ${name}`);
+          console.log(` - ${count} ${name}`);
         });
       }
-      return this.needed;
     },
 
     async run() {
@@ -676,7 +603,7 @@ game.data.storage.DataStorage
         let response = await this.runMission(mission);
         // endregion
         // region rewards
-        this.processReward(response);
+        this.merge(Object.values(response));
         // endregion
 
         o.count += c;
@@ -704,32 +631,9 @@ game.data.storage.DataStorage
       }, {});
 
       const cc = Object.values(count).sort((a, b) => b.count - a.count);
-      console.log(cc);
+      console.log("Міссіі:", cc);
 
       return cc[0];
-    },
-    processReward(response) {
-      // region rewards
-      const o = Object.values(response).reduce((acc2, object) => {
-        Object.keys(object).forEach((key) => {
-          if (this.needed[key]) {
-            Object.entries(object[key]).forEach(([id, count]) => {
-              if (this.needed[key][id]) {
-                acc2[key] = acc2[key] || {};
-                acc2[key][id] = acc2[key][id] || 0;
-                acc2[key][id] += count;
-
-                if (this.needed[key][id]) {
-                  this.needed[key][id].count -= count;
-                }
-              }
-            });
-          }
-        });
-        return acc2;
-      }, {});
-      console.log(this.caller, o);
-      // endregion
     },
     runMission(mission) {
       return Send({
@@ -789,6 +693,129 @@ game.data.storage.DataStorage
     },
   };
 
+  async function ff(arr) {
+    const h = localStorage.getItem(`autofarm_heroes_${userId}`);
+    const hhh = JSON.parse(h) || {};
+
+    let res = document.createElement("div");
+    res.id = "__result";
+
+    arr.slice(0, 10).forEach((h) => {
+      let detail = document.createElement("div");
+      detail.className = "detail";
+      res.appendChild(detail);
+
+      let summary = document.createElement("div");
+      summary.className = "PopUp_ContCheckbox summary";
+      detail.appendChild(summary);
+
+      let input = document.createElement("input");
+      input.type = "checkbox";
+      input.className = "PopUp_checkbox";
+      input.value = h.id;
+      input.id = `hero_${h.id}`;
+      if (hhh.hasOwnProperty(h.id)) {
+        input.setAttribute("checked", true);
+      }
+      summary.appendChild(input);
+
+      let label = document.createElement("label");
+      label.textContent = h.name;
+      label.htmlFor = `hero_${h.id}`;
+      summary.appendChild(label);
+
+      let answers = document.createElement("div");
+      answers.className = "answers";
+      summary.appendChild(answers);
+
+      h.colors.forEach((c) => {
+        let summary = document.createElement("div");
+        summary.className = "PopUp_ContCheckbox rank";
+
+        let input2 = document.createElement("input");
+        input2.type = "checkbox";
+        input2.className = "PopUp_checkbox";
+        input2.value = `${h.id}|${c.id}`;
+        input2.id = `hero_${h.id}_${c.id}`;
+        if (hhh[h.id]?.includes(c.id)) {
+          input2.setAttribute("checked", true);
+        }
+        summary.appendChild(input2);
+
+        let label = document.createElement("label");
+        label.textContent = c.name;
+        label.htmlFor = `hero_${h.id}_${c.id}`;
+        summary.appendChild(label);
+
+        answers.appendChild(summary);
+      });
+    });
+
+    // endregion Выбар
+    return popup.confirm(res.outerHTML, [
+      { result: false, isClose: true },
+      { msg: "Ok", result: true, isInput: false },
+    ]);
+  }
+
+  function hh(arr) {
+    const heroes = [
+      ...popup.msgText.querySelectorAll(
+        "#__result div.detail input.PopUp_checkbox:checked"
+      ),
+    ].reduce((acc, checkBox) => {
+      let [hero, color] = checkBox.value.split("|");
+      if (!acc[hero] && !color) {
+        acc[hero] = [];
+      }
+      if (acc[hero] && color) {
+        acc[hero].push(Number(color));
+      }
+      return acc;
+    }, {});
+
+    console.log("Выбраны", heroes);
+    localStorage.setItem(`autofarm_heroes_${userId}`, JSON.stringify(heroes));
+    // regiom неабходныя прадметы
+    const lo = Object.keys(heroes).reduce((acc, id) => {
+      let h_items = heroes[id].reduce((acc1, color) => {
+        const c = arr.find((e) => e.id == id).colors.find((c) => c.id == color);
+        c.slots.forEach((item) => {
+          acc1[item] = 1 + ~~acc1[item];
+        });
+
+        return acc1;
+      }, {});
+      if (heroes[id].length == 0) {
+        let hero = arr.find((e) => e.id == id);
+        h_items = hero.colors.reduce((acc1, c) => {
+          c.slots.forEach((item) => {
+            acc1[item] = 1 + ~~acc1[item];
+          });
+          return acc1;
+        }, {});
+      }
+      Object.entries(h_items).forEach(([k, v]) => {
+        acc[k] = v + ~~acc[k];
+      });
+
+      return acc;
+    }, {});
+    console.log("Для выбраных рангаў патрэбны прадметы:");
+    Object.entries(lo).forEach(([k, v]) => {
+      console.log(` - ${cheats.translate(`LIB_GEAR_NAME_${k}`)}: ${v}`);
+    });
+    // endtrgion
+
+    return lo;
+  }
+
+  function addCSSFile(url) {
+    document.head.insertAdjacentHTML(
+      "beforeend",
+      `<link rel="stylesheet" href="${url}" type="text/css" />`
+    );
+  }
   /*
 const answer = await popup.confirm('RUN_FUNCTION', [
         { msg: I18N('BTN_CANCEL'), result: false, isCancel: true },
