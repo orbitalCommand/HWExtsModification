@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         My Userscript
 // @namespace    http://tampermonkey.net/
-// @version      1.0.16
+// @version      1.0.17
 // @description  try to take over the world!
 // @author       yukkon
 // @match        https://www.hero-wars.com/*
@@ -300,7 +300,7 @@
                       count: obj[item][id] * count - h,
                     };
                   }
-                  if (res.count == 0) res = undefined;
+                  if (res.count < 1) res = undefined;
                 }
                 const missions = searchMissions(res)
                   .map((id) => lib.data.mission[id])
