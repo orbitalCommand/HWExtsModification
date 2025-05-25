@@ -1,5 +1,5 @@
 // ==UserScript==
-// @name         My Userscript
+// @name         HWHAuto
 // @namespace    http://tampermonkey.net/
 // @version      1.0.17
 // @description  try to take over the world!

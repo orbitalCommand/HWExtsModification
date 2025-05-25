@@ -1,15 +1,15 @@
 // ==UserScript==
-// @name			HWHExampleExt1
-// @name:en			HWHExampleExt1
-// @name:ru			HWHExampleExt1
-// @namespace		HWHExampleExt1
+// @name			HWHYukkonExt
+// @name:en			HWHYukkonExt
+// @name:ru			HWHYukkonExt
+// @namespace		HWHYukkonExt
 // @version			1.0.18
 // @description		Extension for HeroWarsHelper script
 // @description:en	Extension for HeroWarsHelper script
 // @description:ru	Расширение для скрипта HeroWarsHelper
 // @resource json         https://support.oneskyapp.com/hc/en-us/article_attachments/202761727
-// @downloadURL https://github.com/yukkon/HWExts/raw/refs/heads/main/HWHExampleExt1-1.0.user.js
-// @updateURL https://github.com/yukkon/HWExts/raw/refs/heads/main/HWHExampleExt1-1.0.user.js
+// @downloadURL https://github.com/yukkon/HWExts/raw/refs/heads/main/HWHYukkonExt.user.js
+// @updateURL https://github.com/yukkon/HWExts/raw/refs/heads/main/HWHYukkonExt.user.js
 // @icon			https://zingery.ru/scripts/VaultBoyIco16.ico
 // @icon64			https://zingery.ru/scripts/VaultBoyIco64.png
 // @match			https://www.hero-wars.com/*
@@ -564,51 +564,42 @@ game.data.storage.DataStorage
             );
           });
         });
-        const mission = this.selectMission();
-        console.log("Міссія:", mission);
 
-        //const response = await this.runMission(mission); // ранаем міссію
-        //const res = this.merge(Object.values(response)); // працессаем вынікі міссіі
-        //const res1 = this.intersect(res, this.needed); //пакахваем што атрымалі
-
-        //this.result = this.intersect(this.result, res1); //захоўваем вынікі
-        //this.needed = this.subtraction(this.needed, res); // захоўваем што засталося
-        //калі у нідыд нешта есць шукаем наступную міссію
-        // endregion
+        return Object.keys(this.needed).length > 0;
       } else {
         console.log("Можна стварыць:");
         Object.entries(resources).forEach(([id, count]) => {
           const name = cheats.translate(`LIB_GEAR_NAME_${id}`);
           console.log(` - ${count} ${name}`);
         });
+        return false;
       }
     },
 
     async run() {
-      let stamina = AutoMissions.userInfo.refillable.find(
-        (x) => x.id == 1
-      ).amount;
+      let stamina = this.userInfo.refillable.find((x) => x.id == 1).amount;
       const vipLevel = Math.max(
         ...lib.data.level.vip
-          .filter((l) => l.vipPoints <= +AutoMissions.userInfo.vipPoints)
+          .filter((l) => l.vipPoints <= +this.userInfo.vipPoints)
           .map((l) => l.level)
       );
-      const reward = {};
       const times = vipLevel >= 5 ? 10 : 1;
 
       // mission case
+      let mission = this.selectMission();
 
-      while (stamina >= times * mission.cost && o.count < res.count) {
+      while (stamina >= times * mission.cost) {
         // region run mission
         let response = await this.runMission(mission);
         // endregion
-        // region rewards
-        this.merge(Object.values(response));
-        // endregion
+        const res = Helper.merge(Object.values(response)); // працессаем вынікі міссіі
+        //const res1 = this.intersect(res, this.needed); //пакахваем што атрымалі
 
-        o.count += c;
+        //this.result = this.intersect(this.result, res1); //захоўваем вынікі
+        //this.needed = this.subtraction(this.needed, res); // захоўваем што засталося
+        //калі у нідыд нешта есць шукаем наступную міссію
+
         stamina -= mission.cost * times;
-        o.used += mission.cost * times;
 
         setProgress(
           `Атрымалі: ${o.count} / ${res.count} '${
@@ -617,6 +608,7 @@ game.data.storage.DataStorage
             2
           )})`
         );
+        mission = this.selectMission();
       }
     },
     selectMission() {
@@ -651,45 +643,6 @@ game.data.storage.DataStorage
         }
         return x.results[0].result.response;
       });
-    },
-    merge(response) {
-      return response.reduce((acc2, object) => {
-        Object.keys(object).forEach((key) => {
-          Object.entries(object[key]).forEach(([id, count]) => {
-            acc2[key] = acc2[key] || {};
-            acc2[key][id] = acc2[key][id] || 0;
-            acc2[key][id] += count;
-          });
-        });
-        return acc2;
-      }, {});
-    },
-    //возвращает элеиенты 1 объекта которые есть во втором
-    intersect(source, destination) {
-      return Object.keys(source).reduce((acc, key) => {
-        if (destination[key]) {
-          acc[key] = {};
-          Object.keys(source[key]).forEach((id) => {
-            if (destination[key][id]) {
-              acc[key][id] = source[key][id];
-            }
-          });
-        }
-        return acc;
-      }, {});
-    },
-    subtraction(source, destination) {
-      return Object.keys(source).reduce((acc, key) => {
-        if (destination[key]) {
-          acc[key] = {};
-          Object.keys(source[key]).forEach((id) => {
-            if (destination[key][id]) {
-              acc[key][id] = source[key][id] - destination[key][id];
-            }
-          });
-        }
-        return acc;
-      }, {});
     },
   };
 
@@ -758,6 +711,48 @@ game.data.storage.DataStorage
     ]);
   }
 
+  const Helper = {
+    merge(response) {
+      return response.reduce((acc2, object) => {
+        Object.keys(object).forEach((key) => {
+          Object.entries(object[key]).forEach(([id, count]) => {
+            acc2[key] = acc2[key] || {};
+            acc2[key][id] = acc2[key][id] || 0;
+            acc2[key][id] += count;
+          });
+        });
+        return acc2;
+      }, {});
+    },
+    //возвращает элеиенты 1 объекта которые есть во втором
+    intersect(source, destination) {
+      return Object.keys(source).reduce((acc, key) => {
+        if (destination[key]) {
+          acc[key] = {};
+          Object.keys(source[key]).forEach((id) => {
+            if (destination[key][id]) {
+              acc[key][id] = source[key][id];
+            }
+          });
+        }
+        return acc;
+      }, {});
+    },
+    subtraction(source, destination) {
+      return Object.keys(source).reduce((acc, key) => {
+        if (destination[key]) {
+          acc[key] = {};
+          Object.keys(source[key]).forEach((id) => {
+            if (destination[key][id]) {
+              acc[key][id] = source[key][id] - destination[key][id];
+            }
+          });
+        }
+        return acc;
+      }, {});
+    },
+  };
+
   function hh(arr) {
     const heroes = [
       ...popup.msgText.querySelectorAll(
@@ -816,6 +811,7 @@ game.data.storage.DataStorage
       `<link rel="stylesheet" href="${url}" type="text/css" />`
     );
   }
+
   /*
 const answer = await popup.confirm('RUN_FUNCTION', [
         { msg: I18N('BTN_CANCEL'), result: false, isCancel: true },
