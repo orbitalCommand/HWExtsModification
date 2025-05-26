@@ -17,7 +17,10 @@
     return;
   }
 
-  console.log("%cStart my Extension " + GM_info.script.version, "color: red");
+  console.log(
+    `%cStart ${GM_info.script.name} Extension by ${GM_info.script.author} (v.${GM_info.script.version})`,
+    "color: red"
+  );
 
   const { addExtentionName } = HWHFuncs;
   addExtentionName(

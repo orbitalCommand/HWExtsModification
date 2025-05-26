@@ -1,20 +1,21 @@
 // ==UserScript==
-// @name			HWHYukkonExt
-// @name:en			HWHYukkonExt
-// @name:ru			HWHYukkonExt
-// @namespace		HWHYukkonExt
-// @version			1.0.18
-// @description		Extension for HeroWarsHelper script
+// @name			      HWHYukkonExt
+// @name:en			    HWHYukkonExt
+// @name:ru			    HWHYukkonExt
+// @namespace		    HWHYukkonExt
+// @version			    1.0.18
+// @author          yukkon
+// @description		  Extension for HeroWarsHelper script
 // @description:en	Extension for HeroWarsHelper script
 // @description:ru	Расширение для скрипта HeroWarsHelper
-// @resource json         https://support.oneskyapp.com/hc/en-us/article_attachments/202761727
-// @downloadURL https://github.com/yukkon/HWExts/raw/refs/heads/main/HWHYukkonExt.user.js
-// @updateURL https://github.com/yukkon/HWExts/raw/refs/heads/main/HWHYukkonExt.user.js
-// @icon			https://zingery.ru/scripts/VaultBoyIco16.ico
-// @icon64			https://zingery.ru/scripts/VaultBoyIco64.png
-// @match			https://www.hero-wars.com/*
-// @match			https://apps-1701433570146040.apps.fbsbx.com/*
-// @run-at			document-start
+// @resource json   https://support.oneskyapp.com/hc/en-us/article_attachments/202761727
+// @downloadURL     https://github.com/yukkon/HWExts/raw/refs/heads/main/HWHYukkonExt.user.js
+// @updateURL       https://github.com/yukkon/HWExts/raw/refs/heads/main/HWHYukkonExt.user.js
+// @icon  		    	https://www.google.com/s2/favicons?sz=64&domain=hero-wars.com
+// @icon64		    	https://www.google.com/s2/favicons?sz=64&domain=hero-wars.com
+// @match	      		https://www.hero-wars.com/*
+// @match		      	https://apps-1701433570146040.apps.fbsbx.com/*
+// @run-at		      document-start
 // ==/UserScript==
 
 /*
@@ -65,15 +66,9 @@ game.data.storage.DataStorage
     console.log("%cObject for extension not found", "color: red");
     return;
   }
-  let modules;
 
   console.log(
-    "%cStart Extension " +
-      GM_info.script.name +
-      ", v" +
-      GM_info.script.version +
-      " by " +
-      GM_info.script.author,
+    `%cStart ${GM_info.script.name} (v.${GM_info.script.version} by ${GM_info.script.author}`,
     "color: red"
   );
   const { addExtentionName } = HWHFuncs;
@@ -152,14 +147,16 @@ game.data.storage.DataStorage
       "https://yukkon.github.io/HWExts/exports/toast.js"
     );
 
-    window.modules = {
-      getEvents,
-      getTop,
-      idb: { get, set, update, createStore },
-      getSkins,
-      getHeroes,
-      createTab,
-      toast,
+    window[GM_info.script.name] = {
+      modules: {
+        getEvents,
+        getTop,
+        idb: { get, set, update, createStore },
+        getSkins,
+        getHeroes,
+        createTab,
+        toast,
+      },
     };
   }
 
@@ -187,7 +184,7 @@ game.data.storage.DataStorage
       {
         msg: "Падзеі",
         result: async () => {
-          let arr = await window.modules.getEvents();
+          let arr = await window[GM_info.script.name].modules.getEvents();
 
           let res = document.createElement("div");
           res.id = "__result";
@@ -220,7 +217,7 @@ game.data.storage.DataStorage
       {
         msg: "Топ героеў",
         result: async () => {
-          let arr = await window.modules.getTop();
+          let arr = await window[GM_info.script.name].modules.getTop();
 
           let res = document.createElement("div");
           res.id = "__result";
@@ -245,7 +242,7 @@ game.data.storage.DataStorage
       {
         msg: "Скіны",
         result: async () => {
-          const skind = await window.modules.getSkins();
+          const skind = await window[GM_info.script.name].modules.getSkins();
           console.log(skind);
 
           let res = document.createElement("div");
@@ -264,7 +261,7 @@ game.data.storage.DataStorage
           tsw.appendChild(ts);
 
           const f = (coin, sks) => {
-            const m = window.modules.createTab(
+            const m = window[GM_info.script.name].modules.createTab(
               coin == "undefined"
                 ? "Фулл"
                 : cheats.translate(`LIB_COIN_NAME_${coin}`)
@@ -321,12 +318,12 @@ game.data.storage.DataStorage
       {
         msg: "тэст выбару",
         result: async () => {
-          const arr = await window.modules.getHeroes();
+          const arr = await window[GM_info.script.name].modules.getHeroes();
 
-          // endregion Выбар
+          // Выбар герояў
           let answer = await ff(arr);
 
-          // region Апрацойўка вынікаў выбару герояў
+          // Апрацойўка вынікаў выбару герояў
           if (answer) {
             let lo = hh(arr);
 
@@ -338,7 +335,7 @@ game.data.storage.DataStorage
       {
         msg: "тест мерджа",
         result: async () => {
-          const o = await AutoMissions.merge(Object.values(response));
+          const o = await Helper.merge(Object.values(response));
           console.log("мердж", o);
         },
         title: "тест мерджа",
@@ -346,8 +343,8 @@ game.data.storage.DataStorage
       {
         msg: "intersect",
         result: async () => {
-          const o = AutoMissions.merge(Object.values(response));
-          b = AutoMissions.intersect(o, { fragmentScroll: { 215: 18 } });
+          const o = Helper.merge(Object.values(response));
+          b = Helper.intersect(o, { fragmentScroll: { 215: 18 } });
           console.log("intersect", b);
         },
         title: "Атрыманыя рэсурсы якія супадаюць з патрбнымі",
@@ -355,8 +352,8 @@ game.data.storage.DataStorage
       {
         msg: "тест вычитания",
         result: async () => {
-          const o = AutoMissions.merge(Object.values(response));
-          b = AutoMissions.subtraction({ fragmentScroll: { 215: 18 } }, o);
+          const o = Helper.merge(Object.values(response));
+          b = Helper.subtraction({ fragmentScroll: { 215: 18 } }, o);
           console.log("вычитание", b);
         },
         title: "Аднімаем з патрэбных рэсурсаў тыя, якія атрымалі у міссіі",
@@ -369,7 +366,7 @@ game.data.storage.DataStorage
               .getRandomValues(new Uint8Array(10))
               .reduce((acc, val) => acc + val.toString(16));
 
-          window.modules.toast.success(rnd());
+          window[GM_info.script.name].modules.toast.success(rnd());
         },
         title: "",
       },
@@ -588,15 +585,15 @@ game.data.storage.DataStorage
       // mission case
       let mission = this.selectMission();
 
-      while (stamina >= times * mission.cost) {
+      while (mission && stamina >= times * mission.cost) {
         // region run mission
         let response = await this.runMission(mission);
         // endregion
         const res = Helper.merge(Object.values(response)); // працессаем вынікі міссіі
-        //const res1 = this.intersect(res, this.needed); //пакахваем што атрымалі
+        //const res1 = Hekper.intersect(res, this.needed); //пакахваем што атрымалі
 
-        //this.result = this.intersect(this.result, res1); //захоўваем вынікі
-        //this.needed = this.subtraction(this.needed, res); // захоўваем што засталося
+        //this.result = Helper.intersect(this.result, res1); //захоўваем вынікі
+        //this.needed = Helper.subtraction(this.needed, res); // захоўваем што засталося
         //калі у нідыд нешта есць шукаем наступную міссію
 
         stamina -= mission.cost * times;
@@ -636,13 +633,15 @@ game.data.storage.DataStorage
             ident: "body",
           },
         ],
-      }).then((x) => {
-        if (x.error) {
-          console.error(x.error);
-          return {};
-        }
-        return x.results[0].result.response;
-      });
+      })
+        .then((x) => {
+          if (x.error) {
+            console.error(x.error);
+            return {};
+          }
+          return x.results[0].result.response;
+        })
+        .then((response) => Helper.merge(Object.values(response)));
     },
   };
 
@@ -712,6 +711,7 @@ game.data.storage.DataStorage
   }
 
   const Helper = {
+    // аб'яднанне вынікаў выкліка міссій
     merge(response) {
       return response.reduce((acc2, object) => {
         Object.keys(object).forEach((key) => {
